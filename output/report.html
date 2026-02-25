@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DPA Contract Review Report</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f5f6fa;color:#2c3e50;padding:20px}.container{max-width:1200px;margin:0 auto}h1{font-size:1.8em;margin-bottom:5px}.subtitle{color:#7f8c8d;margin-bottom:20px}.summary-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:15px;margin-bottom:25px}.card{background:white;border-radius:10px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,0.08);text-align:center}.card .number{font-size:2.2em;font-weight:700}.card .label{color:#7f8c8d;font-size:0.85em;margin-top:5px}.charts{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:25px}.chart-box{background:white;border-radius:10px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,0.08)}.chart-box canvas{max-height:250px}.filters{margin-bottom:15px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}.filters select,.filters input{padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:0.9em}table{width:100%;border-collapse:collapse;background:white;border-radius:10px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08)}th{background:#34495e;color:white;padding:12px 15px;text-align:left;cursor:pointer}td{padding:12px 15px;border-bottom:1px solid #ecf0f1}.flag-row:hover{background:#f8f9fa}.badge{padding:4px 10px;border-radius:12px;color:white;font-size:0.8em;font-weight:600}.expand-btn{background:#3498db;color:white;border:none;border-radius:50%;width:28px;height:28px;cursor:pointer;font-size:1.1em}.detail-row td{background:#f8f9fa;padding:20px}.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:15px}.detail-col{background:white;border-radius:8px;padding:15px;border:1px solid #e0e0e0}.detail-col h4{color:#2c3e50;margin-bottom:8px}.clause-text{font-size:0.9em;line-height:1.6;color:#555}.detail-section{margin-top:12px}.detail-section h4{color:#2c3e50;margin-bottom:5px}.redline{background:#fff3cd;padding:10px;border-radius:6px;border-left:3px solid #f39c12;font-style:italic}.print-btn{background:#2c3e50;color:white;border:none;padding:10px 20px;border-radius:6px;cursor:pointer}@media print{.filters,.print-btn,.expand-btn{display:none}.detail-row{display:table-row!important}}
+</style></head><body><div class="container">
+<h1>DPA Contract Review Report</h1>
+<p class="subtitle">Mode: hybrid | Model: BAAI/bge-base-en-v1.5</p>
+<div class="summary-cards">
+<div class="card"><div class="number">51</div><div class="label">Clauses Analyzed</div></div>
+<div class="card"><div class="number" style="color:#e74c3c">1</div><div class="label">High Risk</div></div>
+<div class="card"><div class="number" style="color:#c0392b">1</div><div class="label">Non-Compliant</div></div>
+<div class="card"><div class="number" style="color:#27ae60">48</div><div class="label">Compliant</div></div>
+</div>
+<div class="charts"><div class="chart-box"><canvas id="riskChart"></canvas></div><div class="chart-box"><canvas id="clsChart"></canvas></div></div>
+<div class="filters">
+<select id="filterRisk" onchange="filterTable()"><option value="">All Risks</option><option value="High">High</option><option value="Medium">Medium</option><option value="Low">Low</option></select>
+<select id="filterCls" onchange="filterTable()"><option value="">All Classifications</option><option value="compliant">Compliant</option><option value="deviation_minor">Deviation Minor</option><option value="deviation_major">Deviation Major</option><option value="non_compliant">Non-Compliant</option></select>
+<input type="text" id="filterSearch" placeholder="Search..." oninput="filterTable()">
+<button class="print-btn" onclick="window.print()">Export PDF</button></div>
+<table><thead><tr><th>Flag ID</th><th>Section</th><th>Risk</th><th>Classification</th><th>Confidence</th><th>Similarity</th><th>Details</th></tr></thead>
+<tbody id="flagsBody">
+        <tr class="flag-row" data-risk="Low" data-cls="compliant">
+            <td>FLAG_001</td>
+            <td>EXHIBIT A</td>
+            <td><span class="badge" style="background:#27ae60">Low</span></td>
+            <td><span class="badge" style="background:#27ae60">Compliant</span></td>
+            <td>85%</td>
+            <td>0.73 (strong)</td>
+            <td><button class="expand-btn" onclick="toggleRow(this)">+</button></td>
+        </tr>
+        <tr class="detail-row" style="display:none">
+            <td colspan="7">
+                <div class="detail-grid">
+                    <div class="detail-col"><h4>Incoming Clause</h4><p class="clause-text">The DPA shall form an integral part of the Agreement. References in this DPA are to the Agreement as amended by this DPA.</p></div>
+                    <div class="detail-col"><h4>Playbook Clause</h4><p class="clause-text">Relationship between Parties: This DPA is being entered into on a principal-to-principal basis. Nothing in this Agreement or in any document referred to in it shall constitute any Party a partner of the other, nor shall the execution, completion and implementation of this DPA confer on any Party any power to bind or impose any obligation on the other Party.</p></div>
+                </div>
+                <div class="detail-section"><h4>Explanation</h4><p>The incoming clause is a standard integration clause that makes the DPA part of the main Agreement and establishes the relationship between documents. This does not conflict with ClearTax&#x27;s playbook clause about principal-to-principal relationship or trigger any of the internal rulebook conditions. The clause does not specify governing laws or dispute resolution mechanisms that would violate rule legal_9, and simply establishes document hierarchy which is standard practice.</p></div>
+                <div class="detail-section"><h4>Triggered Rules</h4><ul><li>[LEGAL] Dispute Resolution (Risk: Medium)</li></ul></div>
+                <div class="detail-section"><h4>Suggested Redline</h4><p class="redline">None</p></div>
+            </td>
+        </tr>
+        <tr class="flag-row" data-risk="Low" data-cls="compliant">
+            <td>FLAG_002</td>
+            <td>EXHIBIT A</td>
+            <td><span class="badge" style="background:#27ae60">Low</span></td>
+            <td><span class="badge" style="background:#27ae60">Compliant</span></td>
+            <td>8%</td>
+            <td>0.80 (strong)</td>
+            <td><button class="expand-btn" onclick="toggleRow(this)">+</button></td>
+        </tr>
+        <tr class="detail-row" style="display:none">
+            <td colspan="7">
+                <div class="detail-grid">
+                    <div class="detail-col"><h4>Incoming Clause</h4><p class="clause-text">The DPA is effective as of [insert date] or the effective date of the Agreement (the “Effective Date”), whichever is earlier. Agreed Terms:</p></div>
+                    <div class="detail-col"><h4>Playbook Clause</h4><p class="clause-text">This DPA shall be deemed to have come into effect on and from the date of execution of this DPA and shall be valid, legal, and binding till the duration of the Master Agreement (“Term”). After the expiry of this Term, Parties may choose to extend the term of the Master Agreement and DPA mutually.</p></div>
+                </div>
+                <div class="detail-section"><h4>Explanation</h4><p>Matches ClearTax standard (sim=0.80).</p></div>
+                <div class="detail-section"><h4>Triggered Rules</h4><p>None</p></div>
+                <div class="detail-section"><h4>Suggested Redline</h4><p class="redline">None</p></div>
+            </td>
+        </tr>
+        <tr class="flag-row" data-risk="Low" data-cls="compliant">
+            <td>FLAG_003</td>
+            <td>Scope and Operation</td>
+            <td><span class="badge" style="background:#27ae60">Low</span></td>
+            <td><span class="badge" style="background:#27ae60">Compliant</span></td>
+            <td>10%</td>
+            <td>0.76 (strong)</td>
+            <td><button class="expand-btn" onclick="toggleRow(this)">+</button></td>
+        </tr>
+        <tr class="detail-row" style="display:none">
+            <td colspan="7">
+                <div class="detail-grid">
+                    <div class="detail-col"><h4>Incoming Clause</h4><p class="clause-text">This DPA applies to i) Vendor’s processing of personal data to the extent that it is subject to GDPR Article 28, or UK GDPR Article 28, or FADP Section 9 and ii) Vendor’s processing of personal information that is subject to Data Protection Law in providing Services to Hillenbrand in accordance with the Agreement.</p></div>
+                    <div class="detail-col"><h4>Playbook Clause</h4><p class="clause-text">Processor shall provide commercially reasonable assistance to the Data Controller with any data protection impact assessments, and prior consultations with Supervising Authorities or other competent data privacy authorities, which the Data Controller reasonably considers to be required by article 35 or 36 of the GDPR or equivalent provisions of any other Data Protection Law, in each case solely in relation to Processing of Personal Data by, and taking into account the nature of the Processing and information available to, the Contracted Processors.</p></div>
+                </div>
+                <div class="detail-section"><h4>Explanation</h4><p>Matches ClearTax standard (sim=0.76).</p></div>
+                <div class="detail-section"><h4>Triggered Rules</h4><p>None</p></div>
+                <div class="detail-section"><h4>Suggested Redline</h4><p class="redline">None</p></div>
+            </td>
+        </tr>
+        <tr class="flag-row" data-risk="Low" data-cls="compliant">
+            <td>FLAG_004</td>
+            <td>Scope and Operation</td>
+            <td><span class="badge" style="background:#27ae60">Low</span></td>
+            <td><span class="badge" style="background:#27ae60">Compliant</span></td>
+            <td>8%</td>
+            <td>0.79 (strong)</td>
+            <td><button class="expand-btn" onclick="toggleRow(this)">+</button></td>
+        </tr>
+        <tr class="detail-row" style="display:none">
+            <td colspan="7">
+                <div class="detail-grid">
+                    <div class="detail-col"><h4>Incoming Clause</h4><p class="clause-text">As required by Article 28(3) of the GDPR, the subject-matter and duration, nature, and purpose of the processing; type of personal data; and the categories of data subjects, and the obligations and rights of the controller(s) associated with Vendor’s processing of personal data in the provision of the Services as well as the applied technical and organizational measures and Subprocessors engaged are set forth in, and in accordance with, the Agreement and Attachment B to this DPA.</p></div>
+                    <div class="detail-col"><h4>Playbook Clause</h4><p class="clause-text">Processor shall provide commercially reasonable assistance to the Data Controller with any data protection impact assessments, and prior consultations with Supervising Authorities or other competent data privacy authorities, which the Data Controller reasonably considers to be required by article 35 or 36 of the GDPR or equivalent provisions of any other Data Protection Law, in each case solely in relation to Processing of Personal Data by, and taking into account the nature of the Processing and information available to, the Contracted Processors.</p></div>
+                </div>
+                <div class="detail-section"><h4>Explanation</h4><p>Matches ClearTax standard (sim=0.79).</p></div>
+                <div class="detail-section"><h4>Triggered Rules</h4><p>None</p></div>
+                <div class="detail-section"><h4>Suggested Redline</h4><p class="redline">None</p></div>
+            </td>
+        </tr>
+        <tr class="flag-row" data-risk="Low" data-cls="compliant">
+            <td>FLAG_005</td>
+            <td>Scope and Operation</td>
+            <td><span class="badge" style="background:#27ae60">Low</span></td>
+            <td><span class="badge" style="background:#27ae60">Compliant</span></td>
+            <td>12%</td>
+            <td>0.69 (partial)</td>
+            <td><button class="expand-btn" onclick="toggleRow(this)">+</button></td>
+        </tr>
+        <tr class="detail-row" style="display:none">
+            <td colspan="7">
+                <div class="detail-grid">
+                    <div class="detail-col"><h4>Incoming Clause</h4><p class="clause-text">The duration of the processing is the term of the Agreement and until all Hillenbrand personal data has been deleted or returned by Vendor in accordance with Section 10 and, as applicable, the SCCs to this DPA.</p></div>
+                    <div class="detail-col"><h4>Playbook Clause</h4><p class="clause-text">Subject to the requirements under Data Protection Laws (“Legal Purpose”), the Processor shall cease all use of, return, and delete all Personal Data from its records within a reasonable time frame [and no later than 60 (sixty) days] upon: (a) fulfilment of the Purpose, as specified in Appendix A; or (b) receipt of request from the Data Controller for deletion of such Personal Data, whichever is earlier.</p></div>
+                </div>
+                <div class="detail-section"><h4>Explanation</h4><p>Partial match (sim=0.69). No policy rules triggered.</p></div>
+                <div class="detail-section"><h4>Triggered Rules</h4><p>None</p></div>
+                <div class="detail-section"><h4>Suggested Redline</h4><p class="redline">None</p></div>
+            </td>
+        </tr>
+        <tr class="flag-row" data-risk="Low" data-cls="compliant">
+            <td>FLAG_006</td>
+            <td>Relationship of the Parties</td>
+            <td><span class="badge" style="background:#27ae60">Low</span></td>
+            <td><span class="badge" style="background:#27ae60">Compliant</span></td>
+            <td>12%</td>
+            <td>0.71 (strong)</td>
+            <td><button class="expand-btn" onclick="toggleRow(this)">+</button></td>
+        </tr>
+        <tr class="detail-row" style="display:none">
+            <td colspan="7">
+                <div class="detail-grid">
+                    <div class="detail-col"><h4>Incoming Clause</h4><p class="clause-text">The Parties agree that with respect to the provision of the Services, Hillenbrand is the data controller of the personal data and/or a business with respect to personal information and Vendor is the data processor of such personal data and/or a service provider with respect to such personal information. The Vendor confirms that it shall not sell personal information and/or combine personal information from different sources. To the extent that the personal information is subject to the CCPA or CPRA, Vendor (i) is engaged in such processing on behalf of Hillenbrand and is receiving and processing Hillenbrand’s personal information in furtherance of one or more enumerated business purposes under the CCPA; (ii) shall not sell personal information; and for the purposes of CPRA compliance, (iii) shall not combine personal information from different sources.  Vendor understands the restrictions explicitly set forth in the CCPA or CPRA, as applicable, and certifies that it will comply with such restrictions.</p></div>
+                    <div class="detail-col"><h4>Playbook Clause</h4><p class="clause-text">Notwithstanding anything to the contrary contained herein, the Data Controller shall not be entitled to conduct any audit on the Processor or inspect the premises of the Processor. If required in writing by any regulatory or governmental authority, the Processor shall share such documents pertaining to the Services rendered by the Processor to the Data Controller under the Agreement. In case, any such information or documents are not readily available, Processor shall furnish the same within a reasonable period of time. It is clarified that save and except for matters arising directly out of this DPA, nothing in this Clause shall require the Processor to share any confidential or proprietary information or any other information connected to its day-to-day business operations, trade secrets, intellectual property or any other matter whatsoever in the course of any such request.</p></div>
+                </div>
+                <div class="detail-section"><h4>Explanation</h4><p>Matches ClearTax standard (sim=0.71).</p></div>
+                <div class="detail-section"><h4>Triggered Rules</h4><p>None</p></div>
+                <div class="detail-section"><h4>Suggested Redline</h4><p class="redline">None</p></div>
+            </td>
+        </tr>
+        <tr class="flag-row" data-risk="Low" data-cls="compliant">
+            <td>FLAG_007</td>
+            <td>Relationship of the Parties</td>
+            <td><span class="badge" style="background:#27ae60">Low</span></td>
+            <td><span class="badge" style="background:#27ae60">Compliant</span></td>
+            <td>10%</td>
+            <td>0.74 (strong)</td>
+            <td><button class="expand-btn" onclick="toggleRow(this)">+</button></td>
+        </tr>
+        <tr class="detail-row" style="display:none">
+            <td colspan="7">
+                <div class="detail-grid">
+                    <div class="detail-col"><h4>Incoming Clause</h4><p class="clause-text">In accordance with GDPR Article 28(3)(a) and any other Data Protection Law, Vendor and any Subprocessor shall only process personal data and/or personal information as set forth in the Agreement or other documented instruction given by Hillenbrand, unless otherwise required by law to which Vendor is subject, including but not limited to, European Union or EEA Member State law and/or U.S. state and federal law. In this case, Vendor shall inform Hillenbrand of the relevant legal requirement prior to such processing, unless Vendor is legally prohibited from informing Hillenbrand of the requirement.</p></div>
+                    <div class="detail-col"><h4>Playbook Clause</h4><p class="clause-text">Processor shall provide commercially reasonable assistance to the Data Controller with any data protection impact assessments, and prior consultations with Supervising Authorities or other competent data privacy authorities, which the Data Controller reasonably considers to be required by article 35 or 36 of the GDPR or equivalent provisions of any other Data Protection Law, in each case solely in relation to Processing of Personal Data by, and taking into account the nature of the Processing and information available to, the Contracted Processors.</p></div>
+                </div>
+                <div class="detail-section"><h4>Explanation</h4><p>Matches ClearTax standard (sim=0.74).</p></div>
+                <div class="detail-section"><h4>Triggered Rules</h4><p>None</p></div>
+                <div class="detail-section"><h4>Suggested Redline</h4><p class="redline">None</p></div>
+            </td>
+        </tr>
+        <tr class="flag-row" data-risk="Low" data-cls="compliant">
+            <td>FLAG_008</td>
+            <td>Security Measures</td>
+            <td><span class="badge" style="background:#27ae60">Low</span></td>
+            <td><span class="badge" style="background:#27ae60">Compliant</span></td>
+            <td>13%</td>
+            <td>0.67 (partial)</td>
+            <td><button class="expand-btn" onclick="toggleRow(this)">+</button></td>
+        </tr>
+        <tr class="detail-row" style="display:none">
+            <td colspan="7">
+                <div class="detail-grid">
+                    <div class="detail-col"><h4>Incoming Clause</h4><p class="clause-text">In performing the Services, Vendor shall:</p></div>
+                    <div class="detail-col"><h4>Playbook Clause</h4><p class="clause-text">The Data Controller wishes to subcontract certain services involving the processing of Personal Data (defined below), to the Processor, which is to further the Services provided by the Processor to the Data controller (“Purpose”).</p></div>
+                </div>
+                <div class="detail-section"><h4>Explanation</h4><p>Partial match (sim=0.67). No policy rules triggered.</p></div>
+                <div class="detail-section"><h4>Triggered Rules</h4><p>None</p></div>
+                <div class="detail-section"><h4>Suggested Redline</h4><p class="redline">None</p></div>
+            </td>
+        </tr>
+        <tr class="flag-row" data-risk="Low" data-cls="compliant">
+            <td>FLAG_009</td>
+            <td>Security Measures</td>
+            <td><span class="badge" style="background:#27ae60">Low</span></td>
+            <td><span class="badge" style="background:#27ae60">Compliant</span></td>
+            <td>11%</td>
+            <td>0.74 (strong)</td>
+            <td><button class="expand-btn" onclick="toggleRow(this)">+</button></td>
+        </tr>
+        <tr class="detail-row" style="display:none">
+            <td colspan="7">
+                <div class="detail-grid">
+                    <div class="detail-col"><h4>Incoming Clause</h4><p class="clause-text">implement, maintain and monitor a comprehensive written information security program that contains appropriate administrative, technical, and organizational measures to ensure the security and confidentiality of Hillenbrand personal data/personal information and to prevent unauthorized or unlawful processing of personal data/personal information and any loss, destruction of, or damage to personal data/personal information (“Information Security Program”). The safeguards will be appropriate to the risk associated with the processing activity, including, at a minimum, the measures referred to in GDPR Article 32(1);</p></div>
+                    <div class="detail-col"><h4>Playbook Clause</h4><p class="clause-text">Taking into account the state of the art, the costs of implementation and the nature, scope, context and purposes of Processing as well as the risk of varying likelihood and severity for the rights and freedoms of natural persons, Processor shall in relation to the Data Controller Personal Data implement appropriate technical and organizational measures to ensure a level of security appropriate to that risk, including, as appropriate, the measures referred to in Article 32(1) of the GDPR.</p></div>
+                </div>
+                <div class="detail-section"><h4>Explanation</h4><p>Matches ClearTax standard (sim=0.74).</p></div>
+                <div class="detail-section"><h4>Triggered Rules</h4><p>None</p></div>
+                <div class="detail-section"><h4>Suggested Redline</h4><p class="redline">None</p></div>
+            </td>
+        </tr>
+        <tr class="flag-row" data-risk="Low" data-cls="compliant">
+            <td>FLAG_010</td>
+            <td>Security Measures</td>
+            <td><span class="badge" style="background:#27ae60">Low</span></td>
+            <td><span class="badge" style="background:#27ae60">Compliant</span></td>
+            <td>9%</td>
+            <td>0.78 (strong)</td>
+            <td><button class="expand-btn" onclick="toggleRow(this)">+</button></td>
+        </tr>
+        <tr class="detail-row" style="display:none">
+            <td colspan="7">
+                <div class="detail-grid">
+                    <div class="detail-col"><h4>Incoming Clause</h4><p class="clause-text">implement appropriate security measures that meet or exceed prevailing industry standards and are in accordance with the requirements of the GDPR and any other Data Protection Law;</p></div>
+                    <div class="detail-col"><h4>Playbook Clause</h4><p class="clause-text">Taking into account the state of the art, the costs of implementation and the nature, scope, context and purposes of Processing as well as the risk of varying likelihood and severity for the rights and freedoms of natural persons, Processor shall in relation to the Data Controller Personal Data implement appropriate technical and organizational measures to ensure a level of security appropriate to that risk, including, as appropriate, the measures referred to in Article 32(1) of the GDPR.</p></div>
+                </div>
+                <div class="detail-section"><h4>Explanation</h4><p>Matches ClearTax standard (sim=0.78).</p></div>
+                <div class="detail-section"><h4>Triggered Rules</h4><p>None</p></div>
+                <div class="detail-section"><h4>Suggested Redline</h4><p class="redline">None</p></div>
+            </td>
+        </tr>
+        <tr class="flag-row" data-risk="Low" data-cls="compliant">
+            <td>FLAG_011</td>
+            <td>Security Measures</td>
+            <td><span class="badge" style="background:#27ae60">Low</span></td>
+            <td><span class="badge" style="background:#27ae60">Compliant</span></td>
+            <td>12%</td>
+            <td>0.69 (partial)</td>
+            <td><button class="expand-btn" onclick="toggleRow(this)">+</button></td>
+        </tr>
+        <tr class="detail-row" style="display:none">
+            <td colspan="7">
+                <div class="detail-grid">
+                    <div class="detail-col"><h4>Incoming Clause</h4><p class="clause-text">regularly test, assess, and evaluate the effectiveness of the Information Security Program for ensuring the secure processing of personal data/personal information and regularly monitor compliance with such security safeguards and ensure that there is no material decrease in the level of security afforded to Hillenbrand personal data and/or personal information during the duration of the processing, and</p></div>
+                    <div class="detail-col"><h4>Playbook Clause</h4><p class="clause-text">In assessing the appropriate level of security, Processor shall take account in particular of the risks that are presented by Processing, in particular from a Personal Data Breach.</p></div>
+                </div>
+                <div class="detail-section"><h4>Explanation</h4><p>Partial match (sim=0.69). No policy rules triggered.</p></div>
+                <div class="detail-section"><h4>Triggered Rules</h4><p>None</p></div>
+                <div class="detail-section"><h4>Suggested Redline</h4><p class="redline">None</p></div>
+            </td>
+        </tr>
+        <tr class="flag-row" data-risk="Low" data-cls="compliant">
+            <td>FLAG_012</td>
+            <td>Security Measures</td>
+            <td><span class="badge" style="background:#27ae60">Low</span></td>
+            <td><span class="badge" style="background:#27ae60">Compliant</span></td>
+            <td>14%</td>
+            <td>0.65 (partial)</td>
+            <td><button class="expand-btn" onclick="toggleRow(this)">+</button></td>
+        </tr>
+        <tr class="detail-row" style="display:none">
+            <td colspan="7">
+                <div class="detail-grid">
+                    <div class="detail-col"><h4>Incoming Clause</h4><p class="clause-text">at minimum, apply the technical and organizational measures described in Annex II to Attachment B of this DPA.</p></div>
+                    <div class="detail-col"><h4>Playbook Clause</h4><p class="clause-text">Relevant annexures of the Standard Contractual Clauses that have to be filled up, have been set out in the appropriate appendices to this DPA.</p></div>
+                </div>
+                <div class="detail-section"><h4>Explanation</h4><p>Partial match (sim=0.65). No policy rules triggered.</p></div>
+                <div class="detail-section"><h4>Triggered Rules</h4><p>None</p></div>
+                <div class="detail-section"><h4>Suggested Redline</h4><p class="redline">None</p></div>
+            </td>
+        </tr>
+        <tr class="flag-row" data-risk="Low" data-cls="compliant">
+            <td>FLAG_013</td>
+            <td>Confidentiality and Restrictions on Use</td>
+            <td><span class="badge" style="background:#27ae60">Low</span></td>
+            <td><span class="badge" style="background:#27ae60">Compliant</span></td>
+            <td>14%</td>
+            <td>0.65 (partial)</td>
+            <td><button class="expand-btn" onclick="toggleRow(this)">+</button></td>
+        </tr>
+        <tr class="detail-row" style="display:none">
+            <td colspan="7">
+                <div class="detail-grid">
+                    <div class="detail-col"><h4>Incoming Clause</h4><p class="clause-text">Vendor shall treat all personal data and/or personal information processed on behalf of Hillenbrand in accordance with the Agreement as confidential information.</p></div>
+                    <div class="detail-col"><h4>Playbook Clause</h4><p class="clause-text">The Processor shall hold in strict confidence any and all Personal Data disclosed to or accessed by the Processor in accordance with this DPA.</p></div>
+                </div>
+                <div class="detail-section"><h4>Explanation</h4><p>Partial match (sim=0.65). No policy rules triggered.</p></div>
+                <div class="detail-section"><h4>Triggered Rules</h4><p>None</p></div>
+                <div class="detail-section"><h4>Suggested Redline</h4><p class="redline">None</p></div>
+            </td>
+        </tr>
+        <tr class="flag-row" data-risk="Low" data-cls="compliant">
+            <td>FLAG_014</td>
+            <td>Confidentiality and Restrictions on Use</td>
+            <td><span class="badge" style="background:#27ae60">Low</span></td>
+            <td><span class="badge" style="background:#27ae60">Compliant</span></td>
+            <td>14%</td>
+            <td>0.64 (partial)</td>
+            <td><button class="expand-btn" onclick="toggleRow(this)">+</button></td>
+        </tr>
+        <tr class="detail-row" style="display:none">
+            <td colspan="7">
+                <div class="detail-grid">
+                    <div class="detail-col"><h4>Incoming Clause</h4><p class="clause-text">Vendor shall not retain, use, or disclose the personal data/personal information it receives from Hillenbrand for any purpose other than performing the Services for Hillenbrand as specified in the Agreement. Vendor shall not sell the personal data/personal information it receives from Hillenbrand, nor shall it retain, use, or disclose such personal data/personal information outside of its direct business relationship with Hillenbrand. Vendor certifies that it understands the restrictions outlined in this section and will comply with them.</p></div>
+                    <div class="detail-col"><h4>Playbook Clause</h4><p class="clause-text">Notwithstanding anything to the contrary contained herein, the Data Controller shall not be entitled to conduct any audit on the Processor or inspect the premises of the Processor. If required in writing by any regulatory or governmental authority, the Processor shall share such documents pertaining to the Services rendered by the Processor to the Data Controller under the Agreement. In case, any such information or documents are not readily available, Processor shall furnish the same within a reasonable period of time. It is clarified that save and except for matters arising directly out of this DPA, nothing in this Clause shall require the Processor to share any confidential or proprietary information or any other information connected to its day-to-day business operations, trade secrets, intellectual property or any other matter whatsoever in the course of any such request.</p></div>
+                </div>
+                <div class="detail-section"><h4>Explanation</h4><p>Partial match (sim=0.64). No policy rules triggered.</p></div>
+                <div class="detail-section"><h4>Triggered Rules</h4><p>None</p></div>
+                <div class="detail-section"><h4>Suggested Redline</h4><p class="redline">None</p></div>
+            </td>
+        </tr>
+        <tr class="flag-row" data-risk="Low" data-cls="compliant">
+            <td>FLAG_015</td>
+            <td>Confidentiality and Restrictions on Use</td>
+            <td><span class="badge" style="background:#27ae60">Low</span></td>
+            <td><span class="badge" style="background:#27ae60">Compliant</span></td>
+            <td>11%</td>
+            <td>0.72 (strong)</td>
+            <td><button class="expand-btn" onclick="toggleRow(this)">+</button></td>
+        </tr>
+        <tr class="detail-row" style="display:none">
+            <td colspan="7">
+                <div class="detail-grid">
+                    <div class="detail-col"><h4>Incoming Clause</h4><p class="clause-text">Vendor shall ensure that persons authorized to process Hillenbrand personal data and/or personal information have been informed of their responsibilities and have executed written confidentiality agreements or are otherwise subject to confidentiality obligations. Vendor shall ensure that such commitments to confidentiality endure through the duration of the processing and after termination or conclusion of processing. Vendor shall also treat this DPA as confidential information.</p></div>
+                    <div class="detail-col"><h4>Playbook Clause</h4><p class="clause-text">the Processor shall Process such Personal Data strictly in accordance with: (a) all applicable Data Protection Laws to extent expressly and directly applicable to the Processor; (b) written instructions of the Data Controller relevant to Processing for the provision of Services under the Master Service Agreement; and (c) the terms of this DPA.</p></div>
+                </div>
+                <div class="detail-section"><h4>Explanation</h4><p>Matches ClearTax standard (sim=0.72).</p></div>
+                <div class="detail-section"><h4>Triggered Rules</h4><p>None</p></div>
+                <div class="detail-section"><h4>Suggested Redline</h4><p class="redline">None</p></div>
+            </td>
+        </tr>
+        <tr class="flag-row" data-risk="Low" data-cls="compliant">
+            <td>FLAG_016</td>
+            <td>Confidentiality and Restrictions on Use</td>
+            <td><span class="badge" style="background:#27ae60">Low</span></td>
+            <td><span class="badge" style="background:#27ae60">Compliant</span></td>
+            <td>10%</td>
+            <td>0.74 (strong)</td>
+            <td><button class="expand-btn" onclick="toggleRow(this)">+</button></td>
+        </tr>
+        <tr class="detail-row" style="display:none">
+            <td colspan="7">
+                <div class="detail-grid">
+                    <div class="detail-col"><h4>Incoming Clause</h4><p class="clause-text">Vendor shall limit access to Hillenbrand personal data and/or personal information to Vendor’s personnel and any Subprocessor’s personnel that requires such access in order to perform the Services. Any such access to Hillenbrand personal data and/or personal information shall be granted on a strict need-to-know basis.</p></div>
+                    <div class="detail-col"><h4>Playbook Clause</h4><p class="clause-text">The Processor shall limit access to Personal Data to its Personnel who have a need to know the Personal Data as a condition to Processor’s performance of Services for the Data Controller.</p></div>
+                </div>
+                <div class="detail-section"><h4>Explanation</h4><p>Matches ClearTax standard (sim=0.74).</p></div>
+                <div class="detail-section"><h4>Triggered Rules</h4><p>None</p></div>
+                <div class="detail-section"><h4>Suggested Redline</h4><p class="redline">None</p></div>
+            </td>
+        </tr>
+        <tr class="flag-row" data-risk="Low" data-cls="compliant">
+            <td>FLAG_017</td>
+            <td>Subprocessing</td>
+            <td><span class="badge" style="background:#27ae60">Low</span></td>
+            <td><span class="badge" style="background:#27ae60">Compliant</span></td>
+            <td>12%</td>
+            <td>0.70 (partial)</td>
+            <td><button class="expand-btn" onclick="toggleRow(this)">+</button></td>
+        </tr>
+        <tr class="detail-row" style="display:none">
+            <td colspan="7">
+                <div class="detail-grid">
+                    <div class="detail-col"><h4>Incoming Clause</h4><p class="clause-text">Vendor shall not engage any Subprocessor or disclose any personal data and/or any personal information to any outside entity without Hillenbrand’s prior specific written consent, and without Hillenbrand’s prior specific written consent, and only for the purpose of performing the Services specified in the Agreement or as otherwise permitted by Data Protection Law. Vendor shall inform Hillenbrand in writing, through the email addresses of its then-current, active points of contact at Hillenbrand, at least one month in advance of its intention to add or replace a Subprocessor. Such notification shall include the identity of such Subprocessor, the location in which Hillenbrand personal data and/or personal information would be processed by such Subprocessor, and a description of the relevant processing activities to be carried out by the Subprocessor.</p></div>
+                    <div class="detail-col"><h4>Playbook Clause</h4><p class="clause-text">In the event the Processor is of its reasonable opinion that an instruction; (i) violates Data Protection Laws, or (ii) requires access to excessive or unnecessary Personal Data; or (iii) would expose the Processor to liability; the Processor may suspend Processing till the Data Controller provides modified lawful instructions. Parties hereby acknowledge and agree that the Processor shall not be liable for any consequences in relation to the Processor explicitly following the written instructions of the Data Controller to the extent that such acts of the Processor are carried out lawfully and in accordance with other contractual provisions under this DPA.</p></div>
+                </div>
+                <div class="detail-section"><h4>Explanation</h4><p>Partial match (sim=0.70). No policy rules triggered.</p></div>
+                <div class="detail-section"><h4>Triggered Rules</h4><p>None</p></div>
+                <div class="detail-section"><h4>Suggested Redline</h4><p class="redline">None</p></div>
+            </td>
+        </tr>
+        <tr class="flag-row" data-risk="Low" data-cls="compliant">
+            <td>FLAG_018</td>
+            <td>Subprocessing</td>
+            <td><span class="badge" style="background:#27ae60">Low</span></td>
+            <td><span class="badge" style="background:#27ae60">Compliant</span></td>
+            <td>9%</td>
+            <td>0.77 (strong)</td>
+            <td><button class="expand-btn" onclick="toggleRow(this)">+</button></td>
+        </tr>
+        <tr class="detail-row" style="display:none">
+            <td colspan="7">
+                <div class="detail-grid">
+                    <div class="detail-col"><h4>Incoming Clause</h4><p class="clause-text">Vendor shall ensure that Subprocessors are bound by a written agreement requiring such Subprocessor to adhere to the same data protection obligations as those applicable to Vendor under this DPA, including a right for Hillenbrand to audit Subprocessor, and all requirements of Data Protection Law. Vendor shall respect the conditions imposed by GDPR Article 28(2) and (4) regarding the engagement of Subprocessors.</p></div>
+                    <div class="detail-col"><h4>Playbook Clause</h4><p class="clause-text">Processor shall provide commercially reasonable assistance to the Data Controller with any data protection impact assessments, and prior consultations with Supervising Authorities or other competent data privacy authorities, which the Data Controller reasonably considers to be required by article 35 or 36 of the GDPR or equivalent provisions of any other Data Protection Law, in each case solely in relation to Processing of Personal Data by, and taking into account the nature of the Processing and information available to, the Contracted Processors.</p></div>
+                </div>
+                <div class="detail-section"><h4>Explanation</h4><p>Matches ClearTax standard (sim=0.77).</p></div>
+                <div class="detail-section"><h4>Triggered Rules</h4><p>None</p></div>
+                <div class="detail-section"><h4>Suggested Redline</h4><p class="redline">None</p></div>
+            </td>
+        </tr>
+        <tr class="flag-row" data-risk="Low" data-cls="compliant">
+            <td>FLAG_019</td>
+            <td>Subprocessing</td>
+            <td><span class="badge" style="background:#27ae60">Low</span></td>
+            <td><span class="badge" style="background:#27ae60">Compliant</span></td>
+            <td>9%</td>
+            <td>0.78 (strong)</td>
+            <td><button class="expand-btn" onclick="toggleRow(this)">+</button></td>
+        </tr>
+        <tr class="detail-row" style="display:none">
+            <td colspan="7">
+                <div class="detail-grid">
+                    <div class="detail-col"><h4>Incoming Clause</h4><p class="clause-text">Vendor may continue to use Subprocessors engaged as of the Effective Date of this DPA, subject to compliance with Vendor’s obligations under this DPA, the Agreement, and applicable Data Protection Law.</p></div>
+                    <div class="detail-col"><h4>Playbook Clause</h4><p class="clause-text">Where the Processor subcontracts any of the Processing operations to a third-party Sub-processor, the Processor shall enter into a written agreement with each such Sub-processor that imposes obligations on the Sub-processor that are identical to those imposed on the Processor under this DPA. Where the Sub-processor fails to fulfil these obligations, the Processor shall remain fully liable to the Data Controller for the performance of that Sub-processor’s obligations. It is hereby clarified that all obligations of the Processor in relation to its Personnel as set out hereunder (including under this Section 2), shall also apply mutatis mutandis to the involvement of any Sub-processors.</p></div>
+                </div>
+                <div class="detail-section"><h4>Explanation</h4><p>Matches ClearTax standard (sim=0.78).</p></div>
+                <div class="detail-section"><h4>Triggered Rules</h4><p>None</p></div>
+                <div class="detail-section"><h4>Suggested Redline</h4><p class="redline">None</p></div>
+            </td>
+        </tr>
+        <tr class="flag-row" data-risk="Low" data-cls="compliant">
+            <td>FLAG_020</td>
+            <td>Subprocessing</td>
+            <td><span class="badge" style="background:#27ae60">Low</span></td>
+            <td><span class="badge" style="background:#27ae60">Compliant</span></td>
+            <td>13%</td>
+            <td>0.68 (partial)</td>
+            <td><button class="expand-btn" onclick="toggleRow(this)">+</button></td>
+        </tr>
+        <tr class="detail-row" style="display:none">
+            <td colspan="7">
+                <div class="detail-grid">
+                    <div class="detail-col"><h4>Incoming Clause</h4><p class="clause-text">Vendor shall provide a list of its Subprocessors to Hillenbrand at any time upon request.</p></div>
+                    <div class="detail-col"><h4>Playbook Clause</h4><p class="clause-text">The list of Sub-processors which the Data Controller has already authorised is in Appendix B of this Agreement. In the event of on-boarding of any new Sub-processors or changes to existing Sub-processors, the Processor shall notify of such change at least 15 days in advance along with relevant information in re the change, and the Data Controller shall have the right to object to such change.</p></div>
+                </div>
+                <div class="detail-section"><h4>Explanation</h4><p>Partial match (sim=0.68). No policy rules triggered.</p></div>
+                <div class="detail-section"><h4>Triggered Rules</h4><p>None</p></div>
+                <div class="detail-section"><h4>Suggested Redline</h4><p class="redline">None</p></div>
+            </td>
+        </tr>
+        <tr class="flag-row" data-risk="Low" data-cls="compliant">
+            <td>FLAG_021</td>
+            <td>Subprocessing</td>
+            <td><span class="badge" style="background:#27ae60">Low</span></td>
+            <td><span class="badge" style="background:#27ae60">Compliant</span></td>
+            <td>10%</td>
+            <td>0.76 (strong)</td>
+            <td><button class="expand-btn" onclick="toggleRow(this)">+</button></td>
+        </tr>
+        <tr class="detail-row" style="display:none">
+            <td colspan="7">
+                <div class="detail-grid">
+                    <div class="detail-col"><h4>Incoming Clause</h4><p class="clause-text">Vendor shall remain fully liable for any personal data and/or personal information processing, including any acts or omissions, by Vendor’s Subprocessors.</p></div>
+                    <div class="detail-col"><h4>Playbook Clause</h4><p class="clause-text">The Processor shall hold in strict confidence any and all Personal Data disclosed to or accessed by the Processor in accordance with this DPA.</p></div>
+                </div>
+                <div class="detail-section"><h4>Explanation</h4><p>Matches ClearTax standard (sim=0.76).</p></div>
+                <div class="detail-section"><h4>Triggered Rules</h4><p>None</p></div>
+                <div class="detail-section"><h4>Suggested Redline</h4><p class="redline">None</p></div>
+            </td>
+        </tr>
+        <tr class="flag-row" data-risk="Low" data-cls="compliant">
+            <td>FLAG_022</td>
+            <td>Data Subject Requests and Consumer Rights Requests</td>
+            <td><span class="badge" style="background:#27ae60">Low</span></td>
+            <td><span class="badge" style="background:#27ae60">Compliant</span></td>
+            <td>12%</td>
+            <td>0.69 (partial)</td>
+            <td><button class="expand-btn" onclick="toggleRow(this)">+</button></td>
+        </tr>
+        <tr class="detail-row" style="display:none">
+            <td colspan="7">
+                <div class="detail-grid">
+                    <div class="detail-col"><h4>Incoming Clause</h4><p class="clause-text">Vendor shall, without undue delay, and in any event within five (5) business days, notify Hillenbrand if it receives a Data Subject Request regarding Hillenbrand personal data or a Consumer Rights Request regarding Hillenbrand personal information. Vendor shall not respond to any Data Subject Request or Consumer Rights Request, unless and until expressly instructed to do so by Hillenbrand or unless required to respond by applicable law.</p></div>
+                    <div class="detail-col"><h4>Playbook Clause</h4><p class="clause-text">notify Data Controller if it receives a request from a Data Subject under any Data Protection Law in respect of Personal Data; and</p></div>
+                </div>
+                <div class="detail-section"><h4>Explanation</h4><p>Partial match (sim=0.69). No policy rules triggered.</p></div>
+                <div class="detail-section"><h4>Triggered Rules</h4><p>None</p></div>
+                <div class="detail-section"><h4>Suggested Redline</h4><p class="redline">None</p></div>
+            </td>
+        </tr>
+        <tr class="flag-row" data-risk="Low" data-cls="compliant">
+            <td>FLAG_023</td>
+            <td>Data Subject Requests and Consumer Rights Requests</td>
+            <td><span class="badge" style="background:#27ae60">Low</span></td>
+            <td><span class="badge" style="background:#27ae60">Compliant</span></td>
+            <td>12%</td>
+            <td>0.70 (partial)</td>
+            <td><button class="expand-btn" onclick="toggleRow(this)">+</button></td>
+        </tr>
+        <tr class="detail-row" style="display:none">
+            <td colspan="7">
+                <div class="detail-grid">
+                    <div class="detail-col"><h4>Incoming Clause</h4><p class="clause-text">Vendor shall provide all reasonable assistance to Hillenbrand to ensure Hillenbrand is compliant with its obligation to respond to Data Subject Requests and/or Consumer Rights Requests under Data Protection Law and also to the extent required as per the terms and conditions of this DPA. If authorized by Hillenbrand, such assistance may include complying with a Data Subject Request and/or Consumer Rights Request in accordance with Data Protection Law and Hillenbrand instructions.</p></div>
+                    <div class="detail-col"><h4>Playbook Clause</h4><p class="clause-text">In the event the Processor is of its reasonable opinion that an instruction; (i) violates Data Protection Laws, or (ii) requires access to excessive or unnecessary Personal Data; or (iii) would expose the Processor to liability; the Processor may suspend Processing till the Data Controller provides modified lawful instructions. Parties hereby acknowledge and agree that the Processor shall not be liable for any consequences in relation to the Processor explicitly following the written instructions of the Data Controller to the extent that such acts of the Processor are carried out lawfully and in accordance with other contractual provisions under this DPA.</p></div>
+                </div>
+                <div class="detail-section"><h4>Explanation</h4><p>Partial match (sim=0.70). No policy rules triggered.</p></div>
+                <div class="detail-section"><h4>Triggered Rules</h4><p>None</p></div>
+                <div class="detail-section"><h4>Suggested Redline</h4><p class="redline">None</p></div>
+            </td>
+        </tr>
+        <tr class="flag-row" data-risk="Low" data-cls="compliant">
+            <td>FLAG_024</td>
+            <td>Data Subject Requests and Consumer Rights Requests</td>
+            <td><span class="badge" style="background:#27ae60">Low</span></td>
+            <td><span class="badge" style="background:#27ae60">Compliant</span></td>
+            <td>9%</td>
+            <td>0.77 (strong)</td>
+            <td><button class="expand-btn" onclick="toggleRow(this)">+</button></td>
+        </tr>
+        <tr class="detail-row" style="display:none">
+            <td colspan="7">
+                <div class="detail-grid">
+                    <div class="detail-col"><h4>Incoming Clause</h4><p class="clause-text">Vendor shall comply with any Data Subject Request and/or Consumer Rights Request regarding the deletion of an individual’s personal data and/or personal information. Upon direction from Hillenbrand to execute a deletion request, Vendor shall delete the personal data and/or personal information in question within 30 business days. If Vendor is unable to delete such personal data and/or personal information by the aforementioned deadline, it shall promptly notify Hillenbrand in writing.</p></div>
+                    <div class="detail-col"><h4>Playbook Clause</h4><p class="clause-text">Subject to the requirements under Data Protection Laws (“Legal Purpose”), the Processor shall cease all use of, return, and delete all Personal Data from its records within a reasonable time frame [and no later than 60 (sixty) days] upon: (a) fulfilment of the Purpose, as specified in Appendix A; or (b) receipt of request from the Data Controller for deletion of such Personal Data, whichever is earlier.</p></div>
+                </div>
+                <div class="detail-section"><h4>Explanation</h4><p>Matches ClearTax standard (sim=0.76).</p></div>
+                <div class="detail-section"><h4>Triggered Rules</h4><p>None</p></div>
+                <div class="detail-section"><h4>Suggested Redline</h4><p class="redline">None</p></div>
+            </td>
+        </tr>
+        <tr class="flag-row" data-risk="Low" data-cls="compliant">
+            <td>FLAG_025</td>
+            <td>Data Subject Requests and Consumer Rights Requests</td>
+            <td><span class="badge" style="background:#27ae60">Low</span></td>
+            <td><span class="badge" style="background:#27ae60">Compliant</span></td>
+            <td>15%</td>
+            <td>0.64 (partial)</td>
+            <td><button class="expand-btn" onclick="toggleRow(this)">+</button></td>
+        </tr>
+        <tr class="detail-row" style="display:none">
+            <td colspan="7">
+                <div class="detail-grid">
+                    <div class="detail-col"><h4>Incoming Clause</h4><p class="clause-text">If Hillenbrand requests information from Vendor to fulfill its obligation to respond to a Data Subject Request or Consumer Rights Request, Vendor shall provide the requested information without undue delay, and in any event within 72 hours of Hillenbrand’s request for assistance. Vendor shall notify Hillenbrand immediately if Vendor is unable to comply with the request for assistance. Such notification shall provide a detailed explanation as to why Vendor considers compliance with such request for assistance to be impossible.</p></div>
+                    <div class="detail-col"><h4>Playbook Clause</h4><p class="clause-text">notify Data Controller if it receives a request from a Data Subject under any Data Protection Law in respect of Personal Data; and</p></div>
+                </div>
+                <div class="detail-section"><h4>Explanation</h4><p>Partial match (sim=0.64). No policy rules triggered.</p></div>
+                <div class="detail-section"><h4>Triggered Rules</h4><p>None</p></div>
+                <div class="detail-section"><h4>Suggested Redline</h4><p class="redline">None</p></div>
+            </td>
+        </tr>
+        <tr class="flag-row" data-risk="Low" data-cls="compliant">
+            <td>FLAG_026</td>
+            <td>Data Subject Requests and Consumer Rights Requests</td>
+            <td><span class="badge" style="background:#27ae60">Low</span></td>
+            <td><span class="badge" style="background:#27ae60">Compliant</span></td>
+            <td>13%</td>
+            <td>0.68 (partial)</td>
+            <td><button class="expand-btn" onclick="toggleRow(this)">+</button></td>
+        </tr>
+        <tr class="detail-row" style="display:none">
+            <td colspan="7">
+                <div class="detail-grid">
+                    <div class="detail-col"><h4>Incoming Clause</h4><p class="clause-text">During the term of the Agreement, Vendor shall provide Hillenbrand with any personal data and/or personal information that it processes on Hillenbrand’s behalf in a structured, commonly used, electronic, and machine-readable format or in such format as otherwise requested by Hillenbrand.</p></div>
+                    <div class="detail-col"><h4>Playbook Clause</h4><p class="clause-text">the Processor shall Process such Personal Data strictly in accordance with: (a) all applicable Data Protection Laws to extent expressly and directly applicable to the Processor; (b) written instructions of the Data Controller relevant to Processing for the provision of Services under the Master Service Agreement; and (c) the terms of this DPA.</p></div>
+                </div>
+                <div class="detail-section"><h4>Explanation</h4><p>Partial match (sim=0.68). No policy rules triggered.</p></div>
+                <div class="detail-section"><h4>Triggered Rules</h4><p>None</p></div>
+                <div class="detail-section"><h4>Suggested Redline</h4><p class="redline">None</p></div>
+            </td>
+        </tr>
+        <tr class="flag-row" data-risk="Low" data-cls="compliant">
+            <td>FLAG_027</td>
+            <td>Information Security Incident</td>
+            <td><span class="badge" style="background:#27ae60">Low</span></td>
+            <td><span class="badge" style="background:#27ae60">Compliant</span></td>
+            <td>10%</td>
+            <td>0.74 (strong)</td>
+            <td><button class="expand-btn" onclick="toggleRow(this)">+</button></td>
+        </tr>
+        <tr class="detail-row" style="display:none">
+            <td colspan="7">
+                <div class="detail-grid">
+                    <div class="detail-col"><h4>Incoming Clause</h4><p class="clause-text">Vendor shall notify Hillenbrand without undue delay, and at the latest within 24 hours after becoming aware of an Information Security Incident affecting Hillenbrand personal data and/or personal information. The notification, at a minimum, shall include: (i) a description of the Information Security Incident, including the number and categories of individuals concerned, the date and time of the relevant incident and the nature and content of the personal data and/or personal information affected; (ii) a description of the incident and the circumstances that led to the Information Security Incident (e.g., loss, theft, copying); (iii) a description of recommended measures to mitigate any adverse effects of the Information Security Incident; (iv) a description of the likely consequences and potential risk that the Information Security Incident may have towards affected individuals; (v) a description of the measures proposed or taken by Vendor to address the Information Security Incident; and (vi) any other information required by Data Protection Law.</p></div>
+                    <div class="detail-col"><h4>Playbook Clause</h4><p class="clause-text">In the event of a Personal Data Breach concerning Personal Data Processed by the Processor under this DPA, the Processor shall take appropriate measures to address the Breach, including measures to mitigate its adverse effects. The Processor shall also notify the Controller by e-mail at xyz@xyz.com without undue delay after having become aware of the Breach. Such notification shall contain the details of a contact point where more information can be obtained, a description of the nature of the breach (including, where possible, categories and approximate number of data subjects and personal data records concerned), its likely consequences and the measures taken or proposed to address the breach including, where appropriate, measures to mitigate its possible adverse effects. Where, and in so far as, it is not possible to provide all information at the same time, the initial notification shall contain the information then available and further information shall, as it becomes available, subsequently be provided without undue delay.</p></div>
+                </div>
+                <div class="detail-section"><h4>Explanation</h4><p>Matches ClearTax standard (sim=0.74).</p></div>
+                <div class="detail-section"><h4>Triggered Rules</h4><p>None</p></div>
+                <div class="detail-section"><h4>Suggested Redline</h4><p class="redline">None</p></div>
+            </td>
+        </tr>
+        <tr class="flag-row" data-risk="Low" data-cls="compliant">
+            <td>FLAG_028</td>
+            <td>Information Security Incident</td>
+            <td><span class="badge" style="background:#27ae60">Low</span></td>
+            <td><span class="badge" style="background:#27ae60">Compliant</span></td>
+            <td>13%</td>
+            <td>0.67 (partial)</td>
+            <td><button class="expand-btn" onclick="toggleRow(this)">+</button></td>
+        </tr>
+        <tr class="detail-row" style="display:none">
+            <td colspan="7">
+                <div class="detail-grid">
+                    <div class="detail-col"><h4>Incoming Clause</h4><p class="clause-text">In the event of an Information Security Incident, Vendor shall immediately take action to contain such Information Security Incident and mitigate potential risks to affected data subjects or consumers. Vendor shall assist Hillenbrand to investigate, remediate and take any other action Hillenbrand deems necessary regarding an Information Security Incident. Vendor shall provide all reasonable assistance to Hillenbrand to ensure Hillenbrand is compliant with its obligations regarding an Information Security Incident under Data Protection Law.</p></div>
+                    <div class="detail-col"><h4>Playbook Clause</h4><p class="clause-text">In the event of a Personal Data Breach concerning Personal Data Processed by the Processor under this DPA, the Processor shall take appropriate measures to address the Breach, including measures to mitigate its adverse effects. The Processor shall also notify the Controller by e-mail at xyz@xyz.com without undue delay after having become aware of the Breach. Such notification shall contain the details of a contact point where more information can be obtained, a description of the nature of the breach (including, where possible, categories and approximate number of data subjects and personal data records concerned), its likely consequences and the measures taken or proposed to address the breach including, where appropriate, measures to mitigate its possible adverse effects. Where, and in so far as, it is not possible to provide all information at the same time, the initial notification shall contain the information then available and further information shall, as it becomes available, subsequently be provided without undue delay.</p></div>
+                </div>
+                <div class="detail-section"><h4>Explanation</h4><p>Partial match (sim=0.67). No policy rules triggered.</p></div>
+                <div class="detail-section"><h4>Triggered Rules</h4><p>None</p></div>
+                <div class="detail-section"><h4>Suggested Redline</h4><p class="redline">None</p></div>
+            </td>
+        </tr>
+        <tr class="flag-row" data-risk="Low" data-cls="compliant">
+            <td>FLAG_029</td>
+            <td>Information Security Incident</td>
+            <td><span class="badge" style="background:#27ae60">Low</span></td>
+            <td><span class="badge" style="background:#27ae60">Compliant</span></td>
+            <td>13%</td>
+            <td>0.68 (partial)</td>
+            <td><button class="expand-btn" onclick="toggleRow(this)">+</button></td>
+        </tr>
+        <tr class="detail-row" style="display:none">
+            <td colspan="7">
+                <div class="detail-grid">
+                    <div class="detail-col"><h4>Incoming Clause</h4><p class="clause-text">In the event of an Information Security Incident, Hillenbrand has the right to control the breach notification process, unless Data Protection Law dictates otherwise. Vendor shall not communicate with any outside entity (including any data subjects, consumers, law enforcement, supervisory authority or other government agency) regarding Hillenbrand in connection with any Information Security Incident, unless and until expressly instructed to do so by Hillenbrand.</p></div>
+                    <div class="detail-col"><h4>Playbook Clause</h4><p class="clause-text">In the event of a Personal Data Breach concerning Personal Data Processed by the Processor under this DPA, the Processor shall take appropriate measures to address the Breach, including measures to mitigate its adverse effects. The Processor shall also notify the Controller by e-mail at xyz@xyz.com without undue delay after having become aware of the Breach. Such notification shall contain the details of a contact point where more information can be obtained, a description of the nature of the breach (including, where possible, categories and approximate number of data subjects and personal data records concerned), its likely consequences and the measures taken or proposed to address the breach including, where appropriate, measures to mitigate its possible adverse effects. Where, and in so far as, it is not possible to provide all information at the same time, the initial notification shall contain the information then available and further information shall, as it becomes available, subsequently be provided without undue delay.</p></div>
+                </div>
+                <div class="detail-section"><h4>Explanation</h4><p>Partial match (sim=0.68). No policy rules triggered.</p></div>
+                <div class="detail-section"><h4>Triggered Rules</h4><p>None</p></div>
+                <div class="detail-section"><h4>Suggested Redline</h4><p class="redline">None</p></div>
+            </td>
+        </tr>
+        <tr class="flag-row" data-risk="Low" data-cls="compliant">
+            <td>FLAG_030</td>
+            <td>Information Security Incident</td>
+            <td><span class="badge" style="background:#27ae60">Low</span></td>
+            <td><span class="badge" style="background:#27ae60">Compliant</span></td>
+            <td>12%</td>
+            <td>0.69 (partial)</td>
+            <td><button class="expand-btn" onclick="toggleRow(this)">+</button></td>
+        </tr>
+        <tr class="detail-row" style="display:none">
+            <td colspan="7">
+                <div class="detail-grid">
+                    <div class="detail-col"><h4>Incoming Clause</h4><p class="clause-text">In the event of an Information Security Incident, Vendor will be liable for any costs and expenses incurred by Hillenbrand in connection with the Information Security Incident, including those costs and expenses incurred in: (i) preparing and delivering notices to affected individuals; (ii) providing credit monitoring services or other credits or benefits extended to affected individuals to mitigate their risk of harm; (iii) preparing  and mailing or other transmission of such other communications to affected individuals as Hillenbrand deems reasonably appropriate; (iv) establishing a call center or other communications procedures in response to an Information Security Incident; (v) reasonable attorneys’ fees associated with investigating, remediating and responding to the Information Security Incident; (vi) engaging public relations and other similar crisis management services; (vii) retaining forensic investigators  and accountants;  (viii) any liability to third parties that Hillenbrand incurs in connection with the Information Security Incident (such as amounts paid or for which Company is liable to third parties in tort or arising out of contracts); and (ix) labor and subcontracting, including but not limited to employee time spent and additional service provider costs incurred in connection with the Information Security Incident.</p></div>
+                    <div class="detail-col"><h4>Playbook Clause</h4><p class="clause-text">NEITHER PARTY WILL BE LIABLE FOR ANY INDIRECT, PUNITIVE, SPECIAL, INCIDENTAL, EXEMPLARY OR CONSEQUENTIAL DAMAGES IN CONNECTION WITH OR ARISING OUT OF THIS AGREEMENT, HOWEVER IT ARISES, WHETHER FOR BREACH OR IN TORT, INCLUDING BUT NOT LIMITED TO LOSS OF PROFITS, DATA OR BUSINESS INTERRUPTION, EVEN IF THAT PARTY HAS BEEN PREVIOUSLY ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</p></div>
+                </div>
+                <div class="detail-section"><h4>Explanation</h4><p>Partial match (sim=0.69). No policy rules triggered.</p></div>
+                <div class="detail-section"><h4>Triggered Rules</h4><p>None</p></div>
+                <div class="detail-section"><h4>Suggested Redline</h4><p class="redline">None</p></div>
+            </td>
+        </tr>
+        <tr class="flag-row" data-risk="Low" data-cls="compliant">
+            <td>FLAG_031</td>
+            <td>Audits and Inspections</td>
+            <td><span class="badge" style="background:#27ae60">Low</span></td>
+            <td><span class="badge" style="background:#27ae60">Compliant</span></td>
+            <td>14%</td>
+            <td>0.66 (partial)</td>
+            <td><button class="expand-btn" onclick="toggleRow(this)">+</button></td>
+        </tr>
+        <tr class="detail-row" style="display:none">
+            <td colspan="7">
+                <div class="detail-grid">
+                    <div class="detail-col"><h4>Incoming Clause</h4><p class="clause-text">Vendor shall make available to Hillenbrand any information Hillenbrand may require for purposes of demonstrating compliance with Hillenbrand’s obligations under Data Protection Law.</p></div>
+                    <div class="detail-col"><h4>Playbook Clause</h4><p class="clause-text">Processor shall provide commercially reasonable assistance to the Data Controller with any data protection impact assessments, and prior consultations with Supervising Authorities or other competent data privacy authorities, which the Data Controller reasonably considers to be required by article 35 or 36 of the GDPR or equivalent provisions of any other Data Protection Law, in each case solely in relation to Processing of Personal Data by, and taking into account the nature of the Processing and information available to, the Contracted Processors.</p></div>
+                </div>
+                <div class="detail-section"><h4>Explanation</h4><p>Partial match (sim=0.66). No policy rules triggered.</p></div>
+                <div class="detail-section"><h4>Triggered Rules</h4><p>None</p></div>
+                <div class="detail-section"><h4>Suggested Redline</h4><p class="redline">None</p></div>
+            </td>
+        </tr>
+        <tr class="flag-row" data-risk="High" data-cls="non_compliant">
+            <td>FLAG_032</td>
+            <td>Audits and Inspections</td>
+            <td><span class="badge" style="background:#e74c3c">High</span></td>
+            <td><span class="badge" style="background:#c0392b">Non Compliant</span></td>
+            <td>95%</td>
+            <td>0.70 (partial)</td>
+            <td><button class="expand-btn" onclick="toggleRow(this)">+</button></td>
+        </tr>
+        <tr class="detail-row" style="display:none">
+            <td colspan="7">
+                <div class="detail-grid">
+                    <div class="detail-col"><h4>Incoming Clause</h4><p class="clause-text">Vendor shall allow for and contribute to audits conducted by Hillenbrand or another auditor instructed by Hillenbrand, provided that such auditor shall not be a direct competitor of Vendor. If Vendor believes any request for information or cooperation pursuant to Section 9 of this DPA may infringe applicable law, it shall immediately notify Hillenbrand in writing.</p></div>
+                    <div class="detail-col"><h4>Playbook Clause</h4><p class="clause-text">Notwithstanding anything to the contrary contained herein, the Data Controller shall not be entitled to conduct any audit on the Processor or inspect the premises of the Processor. If required in writing by any regulatory or governmental authority, the Processor shall share such documents pertaining to the Services rendered by the Processor to the Data Controller under the Agreement. In case, any such information or documents are not readily available, Processor shall furnish the same within a reasonable period of time. It is clarified that save and except for matters arising directly out of this DPA, nothing in this Clause shall require the Processor to share any confidential or proprietary information or any other information connected to its day-to-day business operations, trade secrets, intellectual property or any other matter whatsoever in the course of any such request.</p></div>
+                </div>
+                <div class="detail-section"><h4>Explanation</h4><p>The incoming clause directly contradicts ClearTax&#x27;s standard position on audits. The customer clause grants broad audit rights to Hillenbrand and their appointed auditors, while ClearTax&#x27;s playbook explicitly prohibits data controllers from conducting audits or inspecting ClearTax premises. The playbook only allows document sharing when required by regulatory/governmental authorities, not customer-initiated audits. This creates significant operational and security risks for ClearTax.</p></div>
+                <div class="detail-section"><h4>Triggered Rules</h4><ul><li>[LEGAL] Audits &amp; Monitoring (Risk: High)</li></ul></div>
+                <div class="detail-section"><h4>Suggested Redline</h4><p class="redline">Replace with ClearTax standard language: &#x27;The Data Controller shall not be entitled to conduct any audit on the Processor or inspect the premises of the Processor. The Processor shall share documents pertaining to the Services only when required in writing by regulatory or governmental authorities, within a reasonable time period, excluding confidential, proprietary, or trade secret information.&#x27;</p></div>
+            </td>
+        </tr>
+        <tr class="flag-row" data-risk="Low" data-cls="compliant">
+            <td>FLAG_033</td>
+            <td>Audits and Inspections</td>
+            <td><span class="badge" style="background:#27ae60">Low</span></td>
+            <td><span class="badge" style="background:#27ae60">Compliant</span></td>
+            <td>16%</td>
+            <td>0.59 (partial)</td>
+            <td><button class="expand-btn" onclick="toggleRow(this)">+</button></td>
+        </tr>
+        <tr class="detail-row" style="display:none">
+            <td colspan="7">
+                <div class="detail-grid">
+                    <div class="detail-col"><h4>Incoming Clause</h4><p class="clause-text">At least annually, Vendor shall supply its current and active Hillenbrand points of contact with a copy of its most recent internal or third-party audits and/or certifications, including any SOC-2, or any successor form of report, which will be subject to the confidentiality requirements in the Agreement.</p></div>
+                    <div class="detail-col"><h4>Playbook Clause</h4><p class="clause-text">Module Two of the Standard Contractual Clauses shall be applicable to the Personal Data transfer.</p></div>
+                </div>
+                <div class="detail-section"><h4>Explanation</h4><p>Partial match (sim=0.59). No policy rules triggered.</p></div>
+                <div class="detail-section"><h4>Triggered Rules</h4><p>None</p></div>
+                <div class="detail-section"><h4>Suggested Redline</h4><p class="redline">None</p></div>
+            </td>
+        </tr>
+        <tr class="flag-row" data-risk="Low" data-cls="compliant">
+            <td>FLAG_034</td>
+            <td>Deletion or Return of Hillenbrand Personal Data and/or Personal Information</td>
+            <td><span class="badge" style="background:#27ae60">Low</span></td>
+            <td><span class="badge" style="background:#27ae60">Compliant</span></td>
+            <td>14%</td>
+            <td>0.66 (partial)</td>
+            <td><button class="expand-btn" onclick="toggleRow(this)">+</button></td>
+        </tr>
+        <tr class="detail-row" style="display:none">
+            <td colspan="7">
+                <div class="detail-grid">
+                    <div class="detail-col"><h4>Incoming Clause</h4><p class="clause-text">Vendor shall, upon receipt of Hillenbrand’s written request, securely delete or return Hillenbrand personal data and/or personal information to Hillenbrand and delete existing copies, unless EU law or EEA Member State law and/or U.S. state or federal law, respectively, requires storage of the personal data and/or personal information, or unless otherwise prohibited by applicable law.</p></div>
+                    <div class="detail-col"><h4>Playbook Clause</h4><p class="clause-text">Subject to the requirements under Data Protection Laws (“Legal Purpose”), the Processor shall cease all use of, return, and delete all Personal Data from its records within a reasonable time frame [and no later than 60 (sixty) days] upon: (a) fulfilment of the Purpose, as specified in Appendix A; or (b) receipt of request from the Data Controller for deletion of such Personal Data, whichever is earlier.</p></div>
+                </div>
+                <div class="detail-section"><h4>Explanation</h4><p>Partial match (sim=0.66). No policy rules triggered.</p></div>
+                <div class="detail-section"><h4>Triggered Rules</h4><p>None</p></div>
+                <div class="detail-section"><h4>Suggested Redline</h4><p class="redline">None</p></div>
+            </td>
+        </tr>
+        <tr class="flag-row" data-risk="Low" data-cls="compliant">
+            <td>FLAG_035</td>
+            <td>Deletion or Return of Hillenbrand Personal Data and/or Personal Information</td>
+            <td><span class="badge" style="background:#27ae60">Low</span></td>
+            <td><span class="badge" style="background:#27ae60">Compliant</span></td>
+            <td>15%</td>
+            <td>0.63 (partial)</td>
+            <td><button class="expand-btn" onclick="toggleRow(this)">+</button></td>
+        </tr>
+        <tr class="detail-row" style="display:none">
+            <td colspan="7">
+                <div class="detail-grid">
+                    <div class="detail-col"><h4>Incoming Clause</h4><p class="clause-text">Vendor shall return all Hillenbrand personal data and/or personal information in a commonly used, structured, electronic, and machine-readable format or in such format as otherwise requested by Hillenbrand.</p></div>
+                    <div class="detail-col"><h4>Playbook Clause</h4><p class="clause-text">the Processor shall Process such Personal Data strictly in accordance with: (a) all applicable Data Protection Laws to extent expressly and directly applicable to the Processor; (b) written instructions of the Data Controller relevant to Processing for the provision of Services under the Master Service Agreement; and (c) the terms of this DPA.</p></div>
+                </div>
+                <div class="detail-section"><h4>Explanation</h4><p>Partial match (sim=0.63). No policy rules triggered.</p></div>
+                <div class="detail-section"><h4>Triggered Rules</h4><p>None</p></div>
+                <div class="detail-section"><h4>Suggested Redline</h4><p class="redline">None</p></div>
+            </td>
+        </tr>
+        <tr class="flag-row" data-risk="Low" data-cls="compliant">
+            <td>FLAG_036</td>
+            <td>Deletion or Return of Hillenbrand Personal Data and/or Personal Information</td>
+            <td><span class="badge" style="background:#27ae60">Low</span></td>
+            <td><span class="badge" style="background:#27ae60">Compliant</span></td>
+            <td>15%</td>
+            <td>0.62 (partial)</td>
+            <td><button class="expand-btn" onclick="toggleRow(this)">+</button></td>
+        </tr>
+        <tr class="detail-row" style="display:none">
+            <td colspan="7">
+                <div class="detail-grid">
+                    <div class="detail-col"><h4>Incoming Clause</h4><p class="clause-text">Immediately after deleting the Hillenbrand personal data and/or personal information, Vendor shall provide to its current, active Hillenbrand points of contact certified written confirmation of such secure deletion.</p></div>
+                    <div class="detail-col"><h4>Playbook Clause</h4><p class="clause-text">Any Personal Data retained for compliance with Legal Purpose, shall be deleted on completion of the Legal Purpose.</p></div>
+                </div>
+                <div class="detail-section"><h4>Explanation</h4><p>Partial match (sim=0.62). No policy rules triggered.</p></div>
+                <div class="detail-section"><h4>Triggered Rules</h4><p>None</p></div>
+                <div class="detail-section"><h4>Suggested Redline</h4><p class="redline">None</p></div>
+            </td>
+        </tr>
+        <tr class="flag-row" data-risk="Low" data-cls="compliant">
+            <td>FLAG_037</td>
+            <td>Data Transfers</td>
+            <td><span class="badge" style="background:#27ae60">Low</span></td>
+            <td><span class="badge" style="background:#27ae60">Compliant</span></td>
+            <td>11%</td>
+            <td>0.73 (strong)</td>
+            <td><button class="expand-btn" onclick="toggleRow(this)">+</button></td>
+        </tr>
+        <tr class="detail-row" style="display:none">
+            <td colspan="7">
+                <div class="detail-grid">
+                    <div class="detail-col"><h4>Incoming Clause</h4><p class="clause-text">Vendor shall not transfer or disclose Hillenbrand personal data to any recipient outside the EEA, Switzerland, or United Kingdom without the prior written permission of Hillenbrand unless  the recipient is in a jurisdiction deemed to have adequate level of data protection by the EU Commission. For the avoidance of doubt: Section 6 of this DPA remains unaffected by the previous sentence. In the event that Vendor or any of Vendor’s Subprocessors is a recipient of Hillenbrand personal data outside the EEA, Switzerland, United Kingdom, or outside any other jurisdiction deemed to have adequate level of data protection by the EU Commission, Vendor shall comply with the SCCs pursuant to Attachment A to this DPA. In the event of any inconsistency between this DPA and the SCCs, the SCCs shall govern.</p></div>
+                    <div class="detail-col"><h4>Playbook Clause</h4><p class="clause-text">The Processor may transfer or authorize the transfer of Personal Data to Third-Party Countries without the prior written consent of the Data Controller. If personal data processed under this DPA is transferred to a Third-Party Country, the Parties shall import the relevant Standard Contractual Clauses to this DPA. Where the Standard Contractual Clauses are imported, for avoidance of doubt it is clarified that:</p></div>
+                </div>
+                <div class="detail-section"><h4>Explanation</h4><p>Matches ClearTax standard (sim=0.73).</p></div>
+                <div class="detail-section"><h4>Triggered Rules</h4><p>None</p></div>
+                <div class="detail-section"><h4>Suggested Redline</h4><p class="redline">None</p></div>
+            </td>
+        </tr>
+        <tr class="flag-row" data-risk="Medium" data-cls="deviation_major">
+            <td>FLAG_038</td>
+            <td>Data Transfers</td>
+            <td><span class="badge" style="background:#f39c12">Medium</span></td>
+            <td><span class="badge" style="background:#e74c3c">Deviation Major</span></td>
+            <td>85%</td>
+            <td>0.63 (partial)</td>
+            <td><button class="expand-btn" onclick="toggleRow(this)">+</button></td>
+        </tr>
+        <tr class="detail-row" style="display:none">
+            <td colspan="7">
+                <div class="detail-grid">
+                    <div class="detail-col"><h4>Incoming Clause</h4><p class="clause-text">Vendor shall not transfer Hillenbrand Personal Data outside of China unless such transfers comply with this DPA and Annex II to Attachment B; however, the SCCs shall not apply to such transfers.</p></div>
+                    <div class="detail-col"><h4>Playbook Clause</h4><p class="clause-text">The Processor may transfer or authorize the transfer of Personal Data to Third-Party Countries without the prior written consent of the Data Controller. If personal data processed under this DPA is transferred to a Third-Party Country, the Parties shall import the relevant Standard Contractual Clauses to this DPA. Where the Standard Contractual Clauses are imported, for avoidance of doubt it is clarified that:</p></div>
+                </div>
+                <div class="detail-section"><h4>Explanation</h4><p>The incoming clause creates a significant deviation from ClearTax&#x27;s standard approach to international data transfers. While ClearTax&#x27;s playbook allows transfers without prior consent and mandates SCCs for third-party country transfers, the customer clause explicitly excludes SCCs from applying to transfers outside China. This contradicts ClearTax&#x27;s standard requirement to import relevant Standard Contractual Clauses for international transfers. The exclusion of SCCs removes important legal safeguards that ClearTax typically relies on for compliant international data transfers.</p></div>
+                <div class="detail-section"><h4>Triggered Rules</h4><ul><li>[INFOSEC] 7. INTERNATIONAL DATA TRANSFERS (Risk: Low)</li></ul></div>
+                <div class="detail-section"><h4>Suggested Redline</h4><p class="redline">Vendor shall not transfer Hillenbrand Personal Data outside of China unless such transfers comply with this DPA and Annex II to Attachment B. Where personal data is transferred to Third-Party Countries, the Parties shall import the relevant Standard Contractual Clauses to this DPA as per ClearTax&#x27;s standard requirements.</p></div>
+            </td>
+        </tr>
+        <tr class="flag-row" data-risk="Low" data-cls="compliant">
+            <td>FLAG_039</td>
+            <td>Data Transfers</td>
+            <td><span class="badge" style="background:#27ae60">Low</span></td>
+            <td><span class="badge" style="background:#27ae60">Compliant</span></td>
+            <td>11%</td>
+            <td>0.72 (strong)</td>
+            <td><button class="expand-btn" onclick="toggleRow(this)">+</button></td>
+        </tr>
+        <tr class="detail-row" style="display:none">
+            <td colspan="7">
+                <div class="detail-grid">
+                    <div class="detail-col"><h4>Incoming Clause</h4><p class="clause-text">In the event that any of the data transfer mechanisms set forth in Section 11 of this DPA are amended, replaced, or repealed by the European Commission, Court of European Justice, or under Data Protection Law, the Parties shall work together in good faith to enter into an updated version of such data transfer mechanism, provide assurances as required under Data Protection Law or to negotiate a solution to enable compliant transfers of personal data.</p></div>
+                    <div class="detail-col"><h4>Playbook Clause</h4><p class="clause-text">The Processor may transfer or authorize the transfer of Personal Data to Third-Party Countries without the prior written consent of the Data Controller. If personal data processed under this DPA is transferred to a Third-Party Country, the Parties shall import the relevant Standard Contractual Clauses to this DPA. Where the Standard Contractual Clauses are imported, for avoidance of doubt it is clarified that:</p></div>
+                </div>
+                <div class="detail-section"><h4>Explanation</h4><p>Matches ClearTax standard (sim=0.72).</p></div>
+                <div class="detail-section"><h4>Triggered Rules</h4><p>None</p></div>
+                <div class="detail-section"><h4>Suggested Redline</h4><p class="redline">None</p></div>
+            </td>
+        </tr>
+        <tr class="flag-row" data-risk="Low" data-cls="compliant">
+            <td>FLAG_040</td>
+            <td>Data Protection Officer</td>
+            <td><span class="badge" style="background:#27ae60">Low</span></td>
+            <td><span class="badge" style="background:#27ae60">Compliant</span></td>
+            <td>13%</td>
+            <td>0.67 (partial)</td>
+            <td><button class="expand-btn" onclick="toggleRow(this)">+</button></td>
+        </tr>
+        <tr class="detail-row" style="display:none">
+            <td colspan="7">
+                <div class="detail-grid">
+                    <div class="detail-col"><h4>Incoming Clause</h4><p class="clause-text">The Vendor shall provide to Hillenbrand contact details of its Data Protection Officer, if applicable.</p></div>
+                    <div class="detail-col"><h4>Playbook Clause</h4><p class="clause-text">notify Data Controller if it receives a request from a Data Subject under any Data Protection Law in respect of Personal Data; and</p></div>
+                </div>
+                <div class="detail-section"><h4>Explanation</h4><p>Partial match (sim=0.67). No policy rules triggered.</p></div>
+                <div class="detail-section"><h4>Triggered Rules</h4><p>None</p></div>
+                <div class="detail-section"><h4>Suggested Redline</h4><p class="redline">None</p></div>
+            </td>
+        </tr>
+        <tr class="flag-row" data-risk="Low" data-cls="compliant">
+            <td>FLAG_041</td>
+            <td>Claims; Inquiries from Law Enforcement, Government Agencies</td>
+            <td><span class="badge" style="background:#27ae60">Low</span></td>
+            <td><span class="badge" style="background:#27ae60">Compliant</span></td>
+            <td>13%</td>
+            <td>0.66 (partial)</td>
+            <td><button class="expand-btn" onclick="toggleRow(this)">+</button></td>
+        </tr>
+        <tr class="detail-row" style="display:none">
+            <td colspan="7">
+                <div class="detail-grid">
+                    <div class="detail-col"><h4>Incoming Clause</h4><p class="clause-text">Vendor shall promptly (i) communicate any request for information about Hillenbrand or its use of the Services from law enforcement, supervisory authority or other government agency, including a supervisory authority, unless Vendor is prohibited to do so by law; and (ii) if Hillenbrand faces an actual or potential claim arising out of or related to an alleged violation of any Data Protection Law, provide all materials and information requested by Hillenbrand that are relevant to the defense of such claim and the underlying circumstances concerning the claim.</p></div>
+                    <div class="detail-col"><h4>Playbook Clause</h4><p class="clause-text">Processor shall provide commercially reasonable assistance to the Data Controller with any data protection impact assessments, and prior consultations with Supervising Authorities or other competent data privacy authorities, which the Data Controller reasonably considers to be required by article 35 or 36 of the GDPR or equivalent provisions of any other Data Protection Law, in each case solely in relation to Processing of Personal Data by, and taking into account the nature of the Processing and information available to, the Contracted Processors.</p></div>
+                </div>
+                <div class="detail-section"><h4>Explanation</h4><p>Partial match (sim=0.66). No policy rules triggered.</p></div>
+                <div class="detail-section"><h4>Triggered Rules</h4><p>None</p></div>
+                <div class="detail-section"><h4>Suggested Redline</h4><p class="redline">None</p></div>
+            </td>
+        </tr>
+        <tr class="flag-row" data-risk="Low" data-cls="compliant">
+            <td>FLAG_042</td>
+            <td>Insurance</td>
+            <td><span class="badge" style="background:#27ae60">Low</span></td>
+            <td><span class="badge" style="background:#27ae60">Compliant</span></td>
+            <td>13%</td>
+            <td>0.67 (partial)</td>
+            <td><button class="expand-btn" onclick="toggleRow(this)">+</button></td>
+        </tr>
+        <tr class="detail-row" style="display:none">
+            <td colspan="7">
+                <div class="detail-grid">
+                    <div class="detail-col"><h4>Incoming Clause</h4><p class="clause-text">In addition to any other insurance required under the Agreement, Vendor shall maintain insurance coverage for privacy and cybersecurity liability (including costs arising from data destruction, hacking or intentional breaches, crisis management activity related to data breaches, and legal claims for Information Security Incidents, privacy violations, and notification costs) of at least $10,000,000.00 U.S. per occurrence.</p></div>
+                    <div class="detail-col"><h4>Playbook Clause</h4><p class="clause-text">The Data Controller agrees to indemnify, defend, and hold harmless the Processor from and against all direct claims, demands, actions, liabilities, costs, interest, damages, and expenses incurred or suffered by the Processor, arising out of any (i) material breach of or non-compliance of this DPA by the Data Controller (or its Personnel), (ii) any breach of Applicable Laws by the Data Controller (or its Personnel) that results in Processor being in breach of the Applicable Laws. For any and third-party claims solely attributable to the Processor’s acts and omissions, the Processor shall assume full control of the defence and shall indemnify the Data Controller against any liabilities, costs, damages and expenses arising out such claims.</p></div>
+                </div>
+                <div class="detail-section"><h4>Explanation</h4><p>Partial match (sim=0.67). No policy rules triggered.</p></div>
+                <div class="detail-section"><h4>Triggered Rules</h4><p>None</p></div>
+                <div class="detail-section"><h4>Suggested Redline</h4><p class="redline">None</p></div>
+            </td>
+        </tr>
+        <tr class="flag-row" data-risk="Low" data-cls="compliant">
+            <td>FLAG_043</td>
+            <td>Data Protection Impact Assessments</td>
+            <td><span class="badge" style="background:#27ae60">Low</span></td>
+            <td><span class="badge" style="background:#27ae60">Compliant</span></td>
+            <td>9%</td>
+            <td>0.77 (strong)</td>
+            <td><button class="expand-btn" onclick="toggleRow(this)">+</button></td>
+        </tr>
+        <tr class="detail-row" style="display:none">
+            <td colspan="7">
+                <div class="detail-grid">
+                    <div class="detail-col"><h4>Incoming Clause</h4><p class="clause-text">Vendor shall provide all reasonable assistance to ensure Hillenbrand is compliant with its obligations in GDPR Article 35 and 36 related to conducting data protection impact assessments in relation to the Services and seeking prior consultation from supervisory authorities.</p></div>
+                    <div class="detail-col"><h4>Playbook Clause</h4><p class="clause-text">Processor shall provide commercially reasonable assistance to the Data Controller with any data protection impact assessments, and prior consultations with Supervising Authorities or other competent data privacy authorities, which the Data Controller reasonably considers to be required by article 35 or 36 of the GDPR or equivalent provisions of any other Data Protection Law, in each case solely in relation to Processing of Personal Data by, and taking into account the nature of the Processing and information available to, the Contracted Processors.</p></div>
+                </div>
+                <div class="detail-section"><h4>Explanation</h4><p>Matches ClearTax standard (sim=0.77).</p></div>
+                <div class="detail-section"><h4>Triggered Rules</h4><p>None</p></div>
+                <div class="detail-section"><h4>Suggested Redline</h4><p class="redline">None</p></div>
+            </td>
+        </tr>
+        <tr class="flag-row" data-risk="Low" data-cls="deviation_minor">
+            <td>FLAG_044</td>
+            <td>Recordkeeping</td>
+            <td><span class="badge" style="background:#27ae60">Low</span></td>
+            <td><span class="badge" style="background:#f39c12">Deviation Minor</span></td>
+            <td>85%</td>
+            <td>0.70 (strong)</td>
+            <td><button class="expand-btn" onclick="toggleRow(this)">+</button></td>
+        </tr>
+        <tr class="detail-row" style="display:none">
+            <td colspan="7">
+                <div class="detail-grid">
+                    <div class="detail-col"><h4>Incoming Clause</h4><p class="clause-text">In accordance with the requirements of GDPR Article 30(2), Vendor shall maintain a record of all processing activities carried out on Hillenbrand’s behalf. Vendor shall make such record available to Hillenbrand and the applicable supervisory authority upon request.</p></div>
+                    <div class="detail-col"><h4>Playbook Clause</h4><p class="clause-text">Processor will keep detailed, accurate, and up-to-date records regarding any Processing of Personal Data it carries out on behalf of the Data Controller and shall maintain any other records as required under Data Protection Laws (“Records”).</p></div>
+                </div>
+                <div class="detail-section"><h4>Explanation</h4><p>The incoming clause is substantially compliant with ClearTax&#x27;s standard approach to record maintenance under GDPR Article 30(2). However, it contains two minor deviations: (1) it specifically references &#x27;Hillenbrand&#x27; instead of using generic &#x27;Data Controller&#x27; terminology, and (2) it lacks the broader language about maintaining &#x27;any other records as required under Data Protection Laws&#x27; that provides comprehensive coverage beyond just GDPR Article 30(2) requirements. The core obligation to maintain processing records and make them available is properly addressed.</p></div>
+                <div class="detail-section"><h4>Triggered Rules</h4><ul><li>[INFOSEC] 3. MAINTENANCE OF RECORDS (Risk: Low)</li></ul></div>
+                <div class="detail-section"><h4>Suggested Redline</h4><p class="redline">Replace &#x27;Hillenbrand&#x27; with &#x27;Data Controller&#x27; and add &#x27;, and shall maintain any other records as required under Data Protection Laws&#x27; after &#x27;on behalf of Data Controller&#x27;</p></div>
+            </td>
+        </tr>
+        <tr class="flag-row" data-risk="Low" data-cls="compliant">
+            <td>FLAG_045</td>
+            <td>Allocation of Costs</td>
+            <td><span class="badge" style="background:#27ae60">Low</span></td>
+            <td><span class="badge" style="background:#27ae60">Compliant</span></td>
+            <td>11%</td>
+            <td>0.72 (strong)</td>
+            <td><button class="expand-btn" onclick="toggleRow(this)">+</button></td>
+        </tr>
+        <tr class="detail-row" style="display:none">
+            <td colspan="7">
+                <div class="detail-grid">
+                    <div class="detail-col"><h4>Incoming Clause</h4><p class="clause-text">Each Party shall perform its obligations under this DPA at its own cost, unless otherwise specified herein.</p></div>
+                    <div class="detail-col"><h4>Playbook Clause</h4><p class="clause-text">This DPA may be executed in any number of counterparts, and each such counterpart shall be deemed to be an original instrument, but all such counterparts together shall constitute but one agreement.</p></div>
+                </div>
+                <div class="detail-section"><h4>Explanation</h4><p>Matches ClearTax standard (sim=0.72).</p></div>
+                <div class="detail-section"><h4>Triggered Rules</h4><p>None</p></div>
+                <div class="detail-section"><h4>Suggested Redline</h4><p class="redline">None</p></div>
+            </td>
+        </tr>
+        <tr class="flag-row" data-risk="Low" data-cls="compliant">
+            <td>FLAG_046</td>
+            <td>Electronically Transmitted Documents and Signatures</td>
+            <td><span class="badge" style="background:#27ae60">Low</span></td>
+            <td><span class="badge" style="background:#27ae60">Compliant</span></td>
+            <td>10%</td>
+            <td>0.76 (strong)</td>
+            <td><button class="expand-btn" onclick="toggleRow(this)">+</button></td>
+        </tr>
+        <tr class="detail-row" style="display:none">
+            <td colspan="7">
+                <div class="detail-grid">
+                    <div class="detail-col"><h4>Incoming Clause</h4><p class="clause-text">An electronic signature or a manual signature on this DPA, the image of which (in either case) is transmitted electronically, shall constitute an original signature for all purposes and the Parties shall not dispute the legally binding nature, validity, or enforceability of this DPA based on the fact that the terms were accepted with any such electronic or manual signature.</p></div>
+                    <div class="detail-col"><h4>Playbook Clause</h4><p class="clause-text">Electronic signatures: The Parties recognize the use of simple electronic signatures as legally valid and binding for entering into this Agreement.</p></div>
+                </div>
+                <div class="detail-section"><h4>Explanation</h4><p>Matches ClearTax standard (sim=0.76).</p></div>
+                <div class="detail-section"><h4>Triggered Rules</h4><p>None</p></div>
+                <div class="detail-section"><h4>Suggested Redline</h4><p class="redline">None</p></div>
+            </td>
+        </tr>
+        <tr class="flag-row" data-risk="Low" data-cls="compliant">
+            <td>FLAG_047</td>
+            <td>Termination</td>
+            <td><span class="badge" style="background:#27ae60">Low</span></td>
+            <td><span class="badge" style="background:#27ae60">Compliant</span></td>
+            <td>13%</td>
+            <td>0.68 (partial)</td>
+            <td><button class="expand-btn" onclick="toggleRow(this)">+</button></td>
+        </tr>
+        <tr class="detail-row" style="display:none">
+            <td colspan="7">
+                <div class="detail-grid">
+                    <div class="detail-col"><h4>Incoming Clause</h4><p class="clause-text">Any breach of this DPA by Vendor shall constitute a material breach of the Services Agreement that (i) gives rise to Hillenbrand’s termination rights under the Agreement, and (ii) shall not be subject to any limitation or exclusion of liability provisions contained in the Agreement.</p></div>
+                    <div class="detail-col"><h4>Playbook Clause</h4><p class="clause-text">The Data Controller agrees to indemnify, defend, and hold harmless the Processor from and against all direct claims, demands, actions, liabilities, costs, interest, damages, and expenses incurred or suffered by the Processor, arising out of any (i) material breach of or non-compliance of this DPA by the Data Controller (or its Personnel), (ii) any breach of Applicable Laws by the Data Controller (or its Personnel) that results in Processor being in breach of the Applicable Laws. For any and third-party claims solely attributable to the Processor’s acts and omissions, the Processor shall assume full control of the defence and shall indemnify the Data Controller against any liabilities, costs, damages and expenses arising out such claims.</p></div>
+                </div>
+                <div class="detail-section"><h4>Explanation</h4><p>Partial match (sim=0.68). No policy rules triggered.</p></div>
+                <div class="detail-section"><h4>Triggered Rules</h4><p>None</p></div>
+                <div class="detail-section"><h4>Suggested Redline</h4><p class="redline">None</p></div>
+            </td>
+        </tr>
+        <tr class="flag-row" data-risk="Low" data-cls="compliant">
+            <td>FLAG_048</td>
+            <td>Indemnity</td>
+            <td><span class="badge" style="background:#27ae60">Low</span></td>
+            <td><span class="badge" style="background:#27ae60">Compliant</span></td>
+            <td>9%</td>
+            <td>0.77 (strong)</td>
+            <td><button class="expand-btn" onclick="toggleRow(this)">+</button></td>
+        </tr>
+        <tr class="detail-row" style="display:none">
+            <td colspan="7">
+                <div class="detail-grid">
+                    <div class="detail-col"><h4>Incoming Clause</h4><p class="clause-text">Vendor hereby agrees to indemnify and keep indemnified, hold harmless, and if instructed by Hillenbrand (at Hillenbrand’s sole discretion), defend at its own expense, Hillenbrand and its subsidiaries and affiliates and their respective officers, directors, employees, personnel and other representatives from and against all claims, suits, hearings, actions, costs, damages, liabilities, penalties, judgments or expenses (including but not limited to legal fees, administrative penalties, investigation costs and legal costs (calculated on a full indemnity basis)) arising out of or relating to (i) Vendor’s or its Subprocessor’s violation of Data Protection Law, or (ii) Vendor’s or its Subprocessor’s breach of this DPA. These indemnification obligations apply in addition to, not in lieu of, any other Vendor indemnification obligations specified in the Services Agreement.</p></div>
+                    <div class="detail-col"><h4>Playbook Clause</h4><p class="clause-text">The Data Controller agrees to indemnify, defend, and hold harmless the Processor from and against all direct claims, demands, actions, liabilities, costs, interest, damages, and expenses incurred or suffered by the Processor, arising out of any (i) material breach of or non-compliance of this DPA by the Data Controller (or its Personnel), (ii) any breach of Applicable Laws by the Data Controller (or its Personnel) that results in Processor being in breach of the Applicable Laws. For any and third-party claims solely attributable to the Processor’s acts and omissions, the Processor shall assume full control of the defence and shall indemnify the Data Controller against any liabilities, costs, damages and expenses arising out such claims.</p></div>
+                </div>
+                <div class="detail-section"><h4>Explanation</h4><p>Matches ClearTax standard (sim=0.77).</p></div>
+                <div class="detail-section"><h4>Triggered Rules</h4><p>None</p></div>
+                <div class="detail-section"><h4>Suggested Redline</h4><p class="redline">None</p></div>
+            </td>
+        </tr>
+        <tr class="flag-row" data-risk="Low" data-cls="compliant">
+            <td>FLAG_049</td>
+            <td>Amendment</td>
+            <td><span class="badge" style="background:#27ae60">Low</span></td>
+            <td><span class="badge" style="background:#27ae60">Compliant</span></td>
+            <td>11%</td>
+            <td>0.72 (strong)</td>
+            <td><button class="expand-btn" onclick="toggleRow(this)">+</button></td>
+        </tr>
+        <tr class="detail-row" style="display:none">
+            <td colspan="7">
+                <div class="detail-grid">
+                    <div class="detail-col"><h4>Incoming Clause</h4><p class="clause-text">Upon written agreement by both Parties, this DPA may be amended as necessary, including to comply with updates to any Data Protection Laws.</p></div>
+                    <div class="detail-col"><h4>Playbook Clause</h4><p class="clause-text">In the event the Processor is of its reasonable opinion that an instruction; (i) violates Data Protection Laws, or (ii) requires access to excessive or unnecessary Personal Data; or (iii) would expose the Processor to liability; the Processor may suspend Processing till the Data Controller provides modified lawful instructions. Parties hereby acknowledge and agree that the Processor shall not be liable for any consequences in relation to the Processor explicitly following the written instructions of the Data Controller to the extent that such acts of the Processor are carried out lawfully and in accordance with other contractual provisions under this DPA.</p></div>
+                </div>
+                <div class="detail-section"><h4>Explanation</h4><p>Matches ClearTax standard (sim=0.72).</p></div>
+                <div class="detail-section"><h4>Triggered Rules</h4><p>None</p></div>
+                <div class="detail-section"><h4>Suggested Redline</h4><p class="redline">None</p></div>
+            </td>
+        </tr>
+        <tr class="flag-row" data-risk="Low" data-cls="compliant">
+            <td>FLAG_050</td>
+            <td>Third-Party Beneficiaries</td>
+            <td><span class="badge" style="background:#27ae60">Low</span></td>
+            <td><span class="badge" style="background:#27ae60">Compliant</span></td>
+            <td>14%</td>
+            <td>0.64 (partial)</td>
+            <td><button class="expand-btn" onclick="toggleRow(this)">+</button></td>
+        </tr>
+        <tr class="detail-row" style="display:none">
+            <td colspan="7">
+                <div class="detail-grid">
+                    <div class="detail-col"><h4>Incoming Clause</h4><p class="clause-text">The Parties agree that Hillenbrand’s subsidiaries and affiliates that are receiving the Services from the Vendor are intended third-party beneficiaries of this DPA and this DPA is intended to relay the same benefits to Hillenbrand’s subsidiaries and affiliates that are receiving the Services from the Vendor.</p></div>
+                    <div class="detail-col"><h4>Playbook Clause</h4><p class="clause-text">Relationship between Parties: This DPA is being entered into on a principal-to-principal basis. Nothing in this Agreement or in any document referred to in it shall constitute any Party a partner of the other, nor shall the execution, completion and implementation of this DPA confer on any Party any power to bind or impose any obligation on the other Party.</p></div>
+                </div>
+                <div class="detail-section"><h4>Explanation</h4><p>Partial match (sim=0.64). No policy rules triggered.</p></div>
+                <div class="detail-section"><h4>Triggered Rules</h4><p>None</p></div>
+                <div class="detail-section"><h4>Suggested Redline</h4><p class="redline">None</p></div>
+            </td>
+        </tr>
+        <tr class="flag-row" data-risk="Low" data-cls="compliant">
+            <td>FLAG_051</td>
+            <td>New Privacy Laws</td>
+            <td><span class="badge" style="background:#27ae60">Low</span></td>
+            <td><span class="badge" style="background:#27ae60">Compliant</span></td>
+            <td>11%</td>
+            <td>0.73 (strong)</td>
+            <td><button class="expand-btn" onclick="toggleRow(this)">+</button></td>
+        </tr>
+        <tr class="detail-row" style="display:none">
+            <td colspan="7">
+                <div class="detail-grid">
+                    <div class="detail-col"><h4>Incoming Clause</h4><p class="clause-text">The Parties understand that various countries, states and provinces are actively considering enacting other privacy laws which may conflict with, preempt and/or place additional regulations on current Data Protection Laws (“New Privacy Laws”). Vendor agrees that it will work in good faith with Hillenbrand to ensure any sharing of personal data and/or personal information between the Parties is done in compliance with New Privacy Laws. The Parties further agree that should any specific Data Protection Law be preempted, invalidated or cease to be effective, this DPA shall continue to survive with respect to each Party’s rights and obligations under other Data Protection Laws.</p></div>
+                    <div class="detail-col"><h4>Playbook Clause</h4><p class="clause-text">The Processor may transfer or authorize the transfer of Personal Data to Third-Party Countries without the prior written consent of the Data Controller. If personal data processed under this DPA is transferred to a Third-Party Country, the Parties shall import the relevant Standard Contractual Clauses to this DPA. Where the Standard Contractual Clauses are imported, for avoidance of doubt it is clarified that:</p></div>
+                </div>
+                <div class="detail-section"><h4>Explanation</h4><p>Matches ClearTax standard (sim=0.73).</p></div>
+                <div class="detail-section"><h4>Triggered Rules</h4><p>None</p></div>
+                <div class="detail-section"><h4>Suggested Redline</h4><p class="redline">None</p></div>
+            </td>
+        </tr></tbody></table></div>
+<script>
+function toggleRow(btn){const d=btn.closest('tr').nextElementSibling;const h=d.style.display==='none';d.style.display=h?'table-row':'none';btn.textContent=h?'-':'+'}
+function filterTable(){const r=document.getElementById('filterRisk').value;const c=document.getElementById('filterCls').value;const s=document.getElementById('filterSearch').value.toLowerCase();document.querySelectorAll('.flag-row').forEach(row=>{const detail=row.nextElementSibling;const show=(!r||row.dataset.risk===r)&&(!c||row.dataset.cls===c)&&(!s||row.textContent.toLowerCase().includes(s)||detail.textContent.toLowerCase().includes(s));row.style.display=show?'':'none';if(!show)detail.style.display='none'})}
+new Chart(document.getElementById('riskChart'),{type:'doughnut',data:{labels:["Low", "High", "Medium"],datasets:[{data:[49, 1, 1],backgroundColor:["#27ae60", "#e74c3c", "#f39c12"]}]},options:{responsive:true,plugins:{title:{display:true,text:'Risk Breakdown'}}}});
+new Chart(document.getElementById('clsChart'),{type:'doughnut',data:{labels:["Compliant", "Non Compliant", "Deviation Major", "Deviation Minor"],datasets:[{data:[48, 1, 1, 1],backgroundColor:["#27ae60", "#c0392b", "#e74c3c", "#f39c12"]}]},options:{responsive:true,plugins:{title:{display:true,text:'Classification Breakdown'}}}});
+</script></body></html>
