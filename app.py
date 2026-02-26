@@ -228,7 +228,7 @@ elif page == "Review Dashboard":
             "All", "compliant", "deviation_minor", "deviation_major", "non_compliant"
         ])
     with fcol3:
-        filter_action = st.selectbox("Review Status", ["All", "pending", "accepted", "rejected", "overridden"])
+        filter_action = st.selectbox("Review Status", ["All", "pending", "accepted", "rejected"])
 
     def apply_filters(flag_list):
         result = flag_list
@@ -257,7 +257,7 @@ elif page == "Review Dashboard":
     def render_flag(f, tab_key):
         fa = flag_actions.get(f["flag_id"], {})
         action_status = fa.get("reviewer_action", "pending") if fa else "pending"
-        action_icon = {"pending": "", "accepted": "", "rejected": "", "overridden": ""}.get(action_status, "")
+        action_icon = {"pending": "", "accepted": "", "rejected": ""}.get(action_status, "")
 
         risk_color = {"High": "red", "Medium": "orange", "Low": "green"}.get(f["risk_level"], "gray")
         confidence = f.get("confidence", 0)
@@ -319,15 +319,11 @@ elif page == "Review Dashboard":
             # Reviewer actions
             st.markdown("---")
             st.markdown(f"**Review Status:** {action_icon} {action_status.upper()}")
-            if fa and fa.get("reviewer_note"):
-                st.caption(f"Note: {fa['reviewer_note']}")
 
-            note = st.text_input("Note (optional)", key=f"note_{tab_key}_{f['flag_id']}", placeholder="Reason...")
-
-            acol1, acol2, acol3 = st.columns(3)
+            acol1, acol2 = st.columns(2)
             with acol1:
                 if st.button("Accept", key=f"acc_{tab_key}_{f['flag_id']}", type="primary"):
-                    update_flag_action(review_id, f["flag_id"], "accepted", note, review.get("reviewer", ""))
+                    update_flag_action(review_id, f["flag_id"], "accepted", "", review.get("reviewer", ""))
 
                     # Comment + highlight on Google Doc
                     if is_google_doc:
@@ -354,11 +350,7 @@ elif page == "Review Dashboard":
                     st.experimental_rerun()
             with acol2:
                 if st.button("Reject", key=f"rej_{tab_key}_{f['flag_id']}"):
-                    update_flag_action(review_id, f["flag_id"], "rejected", note, review.get("reviewer", ""))
-                    st.experimental_rerun()
-            with acol3:
-                if st.button("Override", key=f"ovr_{tab_key}_{f['flag_id']}"):
-                    update_flag_action(review_id, f["flag_id"], "overridden", note, review.get("reviewer", ""))
+                    update_flag_action(review_id, f["flag_id"], "rejected", "", review.get("reviewer", ""))
                     st.experimental_rerun()
 
     # --- Tabs: Legal | Infosec | General ---
