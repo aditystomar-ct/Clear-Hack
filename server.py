@@ -176,7 +176,10 @@ def api_accept_flag(review_id: int, flag_id: str, body: dict):
     doc_id = metadata.get("input_source", "")
     is_google_doc = doc_id and not doc_id.endswith(".docx") and len(doc_id) > 15
 
+    print(f"  [accept] flag={flag_id}, doc_id={doc_id}, is_google_doc={is_google_doc}")
+
     team_emails = load_team_emails(RULEBOOK_PATH)
+    print(f"  [accept] team_emails={team_emails}")
 
     # Comment + highlight on Google Doc
     if is_google_doc:
@@ -191,9 +194,11 @@ def api_accept_flag(review_id: int, flag_id: str, body: dict):
             highlight_single(doc_id, flag)
             messages.append("Clause highlighted")
         except Exception as e:
+            print(f"  [accept] Google Doc error: {e}")
             errors.append(f"Google Doc update failed: {e}")
 
     # Send email to relevant team(s)
+    print(f"  [accept] Sending email... SMTP_USER={bool(SMTP_USER)}, SMTP_PASSWORD={bool(SMTP_PASSWORD)}")
     try:
         from contract_review.notifications import send_flag_email
 
@@ -204,13 +209,16 @@ def api_accept_flag(review_id: int, flag_id: str, body: dict):
             team_emails=team_emails,
             doc_url=doc_url,
         )
+        print(f"  [accept] Email sent to {count} team(s)")
         messages.append(f"Email sent to {count} team(s)")
     except Exception as e:
+        print(f"  [accept] Email error: {e}")
         errors.append(f"Email failed: {e}")
 
     # Check if all flags are now reviewed
     _check_all_reviewed(review_id)
 
+    print(f"  [accept] Done. messages={messages}, errors={errors}")
     return {
         "flag_id": flag_id,
         "status": "accepted",
