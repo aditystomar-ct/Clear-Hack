@@ -90,7 +90,7 @@ def generate_summary(flags):
 
     ranked = sorted(flags, key=lambda x: (
         {"High": 0, "Medium": 1, "Low": 2}.get(x["risk_level"], 9),
-        {"non_compliant": 0, "deviation_major": 1, "deviation_minor": 2, "compliant": 3}.get(x["classification"], 9),
+        {"non_compliant": 0, "compliant": 1}.get(x["classification"], 9),
     ))
     return {
         "total_clauses_analyzed": len(flags),
@@ -145,7 +145,7 @@ def print_rich_summary(summary: dict, flags: list[dict], metadata: dict) -> None
     risk_style = {"High": "bold red", "Medium": "bold yellow", "Low": "bold green"}
     ranked = sorted(flags, key=lambda x: (
         {"High": 0, "Medium": 1, "Low": 2}.get(x["risk_level"], 9),
-        {"non_compliant": 0, "deviation_major": 1, "deviation_minor": 2, "compliant": 3}.get(x["classification"], 9),
+        {"non_compliant": 0, "compliant": 1}.get(x["classification"], 9),
     ))
     for f in ranked[:10]:
         if f["classification"] == "compliant":

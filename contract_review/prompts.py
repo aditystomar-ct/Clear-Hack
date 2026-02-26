@@ -102,7 +102,7 @@ Each object must have:
   "clause_text": "Complete text of the incoming clause",
   "matched_playbook_section": "Corresponding ClearTax DPA section name, or null if new",
   "matched_playbook_text": "Complete text of ClearTax standard clause, or null if new",
-  "classification": "compliant|deviation_minor|deviation_major|non_compliant",
+  "classification": "compliant|non_compliant",
   "risk_level": "High|Medium|Low",
   "confidence": 0.0-1.0,
   "explanation": "2-3 sentence explanation",

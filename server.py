@@ -45,7 +45,7 @@ from contract_review.extractors import load_team_emails
 
 app = FastAPI(title="DPA Contract Review API")
 
-BASE_URL = os.environ.get("BASE_URL", "http://localhost:8000")
+BASE_URL = os.environ.get("BASE_URL", "https://clear-hack.onrender.com")
 
 
 def _check_all_reviewed(review_id: int):
@@ -166,56 +166,45 @@ def api_accept_flag(review_id: int, flag_id: str, body: dict):
     custom_comment = body.get("comment", "").strip()
     reviewer_name = body.get("reviewer_name", review.get("reviewer", ""))
 
-    # Update DB
+    # Update DB immediately
     update_flag_action(review_id, flag_id, "accepted", custom_comment, reviewer_name)
 
-    messages = []
-    errors = []
+    # Run slow tasks (Google Doc + email) in background thread
+    def _background_tasks():
+        doc_id = metadata.get("input_source", "")
+        is_google_doc = doc_id and not doc_id.endswith(".docx") and len(doc_id) > 15
+        team_emails = load_team_emails(RULEBOOK_PATH)
 
-    # Determine if input was a Google Doc
-    doc_id = metadata.get("input_source", "")
-    is_google_doc = doc_id and not doc_id.endswith(".docx") and len(doc_id) > 15
+        if is_google_doc:
+            try:
+                from contract_review.google_doc import (
+                    highlight_single,
+                    post_manual_comment,
+                )
+                post_manual_comment(doc_id, flag, custom_comment)
+                highlight_single(doc_id, flag)
+            except Exception as e:
+                print(f"  Google Doc update failed: {e}")
 
-    team_emails = load_team_emails(RULEBOOK_PATH)
-
-    # Comment + highlight on Google Doc
-    if is_google_doc:
         try:
-            from contract_review.google_doc import (
-                highlight_single,
-                post_manual_comment,
+            from contract_review.notifications import send_flag_email
+            doc_url = f"https://docs.google.com/document/d/{doc_id}" if is_google_doc else ""
+            send_flag_email(
+                contract_name=metadata.get("contract_name", metadata.get("input_source", "")),
+                flag=flag,
+                team_emails=team_emails,
+                doc_url=doc_url,
             )
-
-            post_manual_comment(doc_id, flag, custom_comment)
-            messages.append("Comment posted to Google Doc")
-            highlight_single(doc_id, flag)
-            messages.append("Clause highlighted")
         except Exception as e:
-            errors.append(f"Google Doc update failed: {e}")
+            print(f"  Email failed: {e}")
 
-    # Send email to relevant team(s)
-    try:
-        from contract_review.notifications import send_flag_email
+        _check_all_reviewed(review_id)
 
-        doc_url = f"https://docs.google.com/document/d/{doc_id}" if is_google_doc else ""
-        count = send_flag_email(
-            contract_name=metadata.get("contract_name", metadata.get("input_source", "")),
-            flag=flag,
-            team_emails=team_emails,
-            doc_url=doc_url,
-        )
-        messages.append(f"Email sent to {count} team(s)")
-    except Exception as e:
-        errors.append(f"Email failed: {e}")
-
-    # Check if all flags are now reviewed
-    _check_all_reviewed(review_id)
+    threading.Thread(target=_background_tasks, daemon=True).start()
 
     return {
         "flag_id": flag_id,
         "status": "accepted",
-        "messages": messages,
-        "errors": errors,
     }
 
 

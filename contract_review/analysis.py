@@ -155,7 +155,8 @@ def analyze_dpa(
         item["clause_text"] = item.get("clause_text") or ""
         item["matched_playbook_section"] = item.get("matched_playbook_section") or None
         item["matched_playbook_text"] = item.get("matched_playbook_text") or None
-        item["classification"] = item.get("classification") or "compliant"
+        cls = item.get("classification") or "compliant"
+        item["classification"] = "compliant" if cls == "compliant" else "non_compliant"
         item["risk_level"] = item.get("risk_level") or "Low"
         item["confidence"] = item.get("confidence") if item.get("confidence") is not None else 0.5
         item["explanation"] = item.get("explanation") or ""

@@ -190,7 +190,7 @@ def send_review_ready_email(
         lines.append("")
         lines.append(f"Contract: {contract_name}")
         lines.append(f"Review ID: #{review_id}")
-        lines.append(f"Pending flags for {team.upper()} team: {count}")
+        lines.append(f"There are some pending flags for the {team.upper()} team.")
         if doc_url:
             lines.append("")
             lines.append(f"Google Doc: {doc_url}")
@@ -203,7 +203,7 @@ def send_review_ready_email(
         body = "\n".join(lines)
 
         msg = MIMEText(body, "plain")
-        msg["Subject"] = f"Action Required: {count} DPA flags pending — {contract_name}"
+        msg["Subject"] = f"Action Required: DPA flags pending — {contract_name}"
         msg["From"] = sender
         msg["To"] = email
 
