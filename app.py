@@ -155,6 +155,12 @@ if page == "Upload & Analyze":
 elif page == "Review Dashboard":
     st.title("Review Dashboard")
 
+    # Show persisted messages from previous action (survive st.experimental_rerun)
+    if "action_success" in st.session_state:
+        st.success(st.session_state.pop("action_success"))
+    if "action_error" in st.session_state:
+        st.error(st.session_state.pop("action_error"))
+
     reviews = list_reviews()
     if not reviews:
         st.info("No reviews yet. Go to **Upload & Analyze** to run your first review.")
@@ -228,7 +234,7 @@ elif page == "Review Dashboard":
             "All", "compliant", "deviation_minor", "deviation_major", "non_compliant"
         ])
     with fcol3:
-        filter_action = st.selectbox("Review Status", ["All", "pending", "accepted", "rejected"])
+        filter_action = st.selectbox("Review Status", ["All", "pending", "accepted", "rejected", "approved"])
 
     def apply_filters(flag_list):
         result = flag_list
@@ -257,7 +263,7 @@ elif page == "Review Dashboard":
     def render_flag(f, tab_key):
         fa = flag_actions.get(f["flag_id"], {})
         action_status = fa.get("reviewer_action", "pending") if fa else "pending"
-        action_icon = {"pending": "", "accepted": "", "rejected": ""}.get(action_status, "")
+        action_icon = {"pending": "", "accepted": "", "rejected": "", "approved": ""}.get(action_status, "")
 
         risk_color = {"High": "red", "Medium": "orange", "Low": "green"}.get(f["risk_level"], "gray")
         confidence = f.get("confidence", 0)
@@ -279,11 +285,14 @@ elif page == "Review Dashboard":
             left, right = st.columns(2)
             with left:
                 st.markdown("**Incoming Clause**")
-                st.text_area("Incoming", f.get("input_text", ""), height=120, disabled=True, key=f"inp_{tab_key}_{f['flag_id']}", label_visibility="collapsed")
+                inp_text = f.get("input_text", "")
+                inp_height = max(120, min(400, len(inp_text) // 2))
+                st.text_area("Incoming", inp_text, height=inp_height, disabled=True, key=f"inp_{tab_key}_{f['flag_id']}", label_visibility="collapsed")
             with right:
-                st.markdown("**Playbook Clause**")
+                st.markdown("**ClearTax Standard Clause**")
                 pb_text = f.get("matched_playbook_text") or "No playbook match"
-                st.text_area("Playbook", pb_text, height=120, disabled=True, key=f"pb_{tab_key}_{f['flag_id']}", label_visibility="collapsed")
+                pb_height = max(120, min(400, len(pb_text) // 2))
+                st.text_area("Playbook", pb_text, height=pb_height, disabled=True, key=f"pb_{tab_key}_{f['flag_id']}", label_visibility="collapsed")
 
             # Match info
             st.markdown(
@@ -320,37 +329,67 @@ elif page == "Review Dashboard":
             st.markdown("---")
             st.markdown(f"**Review Status:** {action_icon} {action_status.upper()}")
 
-            acol1, acol2 = st.columns(2)
+            # Comment box — if filled, Accept posts this instead of auto-generated comment
+            custom_comment = ""
+            if is_google_doc:
+                custom_comment = st.text_area(
+                    "Comment (optional — posted to Google Doc on Accept)",
+                    key=f"cmt_{tab_key}_{f['flag_id']}",
+                    height=80,
+                    placeholder="Write a custom comment... Leave empty to use the auto-generated review comment.",
+                )
+
+            acol1, acol2, acol3 = st.columns(3)
             with acol1:
                 if st.button("Accept", key=f"acc_{tab_key}_{f['flag_id']}", type="primary"):
                     update_flag_action(review_id, f["flag_id"], "accepted", "", review.get("reviewer", ""))
+                    messages = []
+                    errors = []
 
                     # Comment + highlight on Google Doc
                     if is_google_doc:
                         try:
-                            from contract_review.google_doc import add_comment_single, highlight_single
-                            add_comment_single(doc_id, f, team_emails)
+                            from contract_review.google_doc import add_comment_single, post_manual_comment, highlight_single
+                            if custom_comment and custom_comment.strip():
+                                post_manual_comment(doc_id, f, custom_comment.strip())
+                                messages.append("Custom comment posted to Google Doc")
+                            else:
+                                add_comment_single(doc_id, f, team_emails)
+                                messages.append("Auto comment posted to Google Doc")
                             highlight_single(doc_id, f)
+                            messages.append("Clause highlighted")
                         except Exception as e:
-                            st.error(f"Google Doc update failed: {e}")
+                            errors.append(f"Google Doc update failed: {e}")
 
                     # Send email to relevant team(s)
                     try:
                         from contract_review.notifications import send_flag_email
                         doc_url = f"https://docs.google.com/document/d/{doc_id}" if is_google_doc else ""
-                        send_flag_email(
+                        count = send_flag_email(
                             contract_name=metadata.get("contract_name", metadata.get("input_source", "")),
                             flag=f,
                             team_emails=team_emails,
                             doc_url=doc_url,
                         )
+                        messages.append(f"Email sent to {count} team(s)")
                     except Exception as e:
-                        st.error(f"Email failed: {e}")
+                        errors.append(f"Email failed: {e}")
+
+                    if messages:
+                        st.session_state["action_success"] = f"{f['flag_id']} accepted. {'. '.join(messages)}."
+                    if errors:
+                        st.session_state["action_error"] = " | ".join(errors)
 
                     st.experimental_rerun()
             with acol2:
                 if st.button("Reject", key=f"rej_{tab_key}_{f['flag_id']}"):
                     update_flag_action(review_id, f["flag_id"], "rejected", "", review.get("reviewer", ""))
+                    st.session_state["action_success"] = f"{f['flag_id']} rejected."
+                    st.experimental_rerun()
+            with acol3:
+                if st.button("Approve", key=f"apr_{tab_key}_{f['flag_id']}"):
+                    update_flag_action(review_id, f["flag_id"], "approved", "", review.get("reviewer", ""))
+                    st.session_state["action_success"] = f"{f['flag_id']} approved (acknowledged, no action taken)."
                     st.experimental_rerun()
 
     # --- Tabs: Legal | Infosec | General ---

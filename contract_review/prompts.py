@@ -90,23 +90,23 @@ CLASSIFICATION_GUIDE = """CLASSIFICATION GUIDE:
 
 RESPONSE_FORMAT = """RESPONSE FORMAT:
 Return ONLY a JSON array. No markdown fences, no commentary outside the JSON.
-Keep text fields CONCISE to avoid truncation:
-- "clause_text": First 150 chars of the incoming clause, enough to identify it
-- "matched_playbook_text": First 150 chars of the matching ClearTax clause
-- "explanation": 1-2 sentences max — what differs and why it matters
-- "suggested_redline": Brief proposed change, or empty string if compliant
+
+- "clause_text": The COMPLETE text of the incoming clause or paragraph (do not truncate)
+- "matched_playbook_text": The COMPLETE text of the corresponding ClearTax standard clause (do not truncate), or null if new
+- "explanation": 2-3 sentences — what differs and why it matters for ClearTax
+- "suggested_redline": Proposed amended language that ClearTax would accept, or empty string if compliant
 
 Each object must have:
 {{
   "section": "Section name from incoming DPA",
-  "clause_text": "First 150 chars of the incoming clause...",
+  "clause_text": "Complete text of the incoming clause",
   "matched_playbook_section": "Corresponding ClearTax DPA section name, or null if new",
-  "matched_playbook_text": "First 150 chars of ClearTax standard, or null if new",
+  "matched_playbook_text": "Complete text of ClearTax standard clause, or null if new",
   "classification": "compliant|deviation_minor|deviation_major|non_compliant",
   "risk_level": "High|Medium|Low",
   "confidence": 0.0-1.0,
-  "explanation": "1-2 sentence explanation",
-  "suggested_redline": "Brief proposed change or empty string",
+  "explanation": "2-3 sentence explanation",
+  "suggested_redline": "Proposed amended language or empty string",
   "triggered_rules": [
     {{"rule_id": "legal_1", "source": "legal", "clause": "Audits & Monitoring", "risk": "High"}}
   ]

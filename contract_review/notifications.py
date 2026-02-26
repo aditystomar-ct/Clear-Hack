@@ -164,18 +164,18 @@ def send_flag_email(
     Returns number of emails sent.
     """
     if not SMTP_USER or not SMTP_PASSWORD:
-        print("  SMTP not configured — skipping email.")
-        return 0
+        raise RuntimeError(
+            "SMTP not configured. Set SMTP_USER and SMTP_PASSWORD in .env to send emails."
+        )
 
     sender = EMAIL_FROM or SMTP_USER
     sent = 0
 
-    risk = flag["risk_level"]
-    cls = flag["classification"].replace("_", " ").title()
+    risk = flag.get("risk_level") or "Low"
+    cls = (flag.get("classification") or "compliant").replace("_", " ").title()
     flag_id = flag.get("flag_id", "?")
     section = flag.get("input_clause_section") or "General"
-    similarity = flag.get("similarity_score", 0)
-    match_type = flag.get("match_type", "N/A")
+    match_type = flag.get("match_type") or "N/A"
 
     # Determine which teams to email
     triggered_teams = set()
@@ -191,96 +191,27 @@ def send_flag_email(
         if not email:
             continue
 
+        explanation = flag.get("explanation") or ""
+        redline = flag.get("suggested_redline") or ""
+
         L = []
-
-        # --- Header ---
-        L.append(f"DPA CLAUSE REVIEW — {team.upper()} TEAM")
+        L.append(f"DPA Review — {contract_name}")
+        L.append(f"Section: {section} | Risk: {risk} | {cls}")
         L.append("")
-        L.append(f"A clause from the incoming DPA has been reviewed and accepted.")
-        L.append(f"Your team's attention is required for the item below.")
-        L.append("")
-
-        # --- Quick summary box ---
-        L.append("+------------------------------------------------------+")
-        L.append(f"|  Flag:           {flag_id}")
-        L.append(f"|  Risk:           {_risk_label(risk)}")
-        L.append(f"|  Classification: {cls}")
-        L.append(f"|  Section:        {section}")
-        L.append(f"|  Similarity:     {similarity:.0%} ({match_type})")
-        L.append("+------------------------------------------------------+")
-        L.append("")
-
-        # --- Clause text ---
-        L.append("CLAUSE TEXT")
-        L.append("-" * 40)
-        clause_text = flag.get("input_text", "")
-        L.append(_truncate_clause(clause_text))
-        L.append("")
-
-        # --- Playbook comparison (if available) ---
-        pb_text = flag.get("matched_playbook_text", "")
-        if pb_text:
-            L.append("CLEARTAX PLAYBOOK (EXPECTED)")
-            L.append("-" * 40)
-            L.append(_truncate_clause(pb_text))
-            L.append("")
-
-        # --- Analysis ---
-        explanation = flag.get("explanation", "")
-        if explanation:
-            L.append("ANALYSIS")
-            L.append("-" * 40)
-            L.append(explanation)
-            L.append("")
-
-        # --- Rulebook violations for this team ---
-        team_rules = [r for r in flag.get("triggered_rules", []) if r.get("source") == team]
-        if team_rules:
-            L.append(f"RULEBOOK VIOLATIONS ({team.upper()})")
-            L.append("-" * 40)
-            for r in team_rules:
-                L.append(f"  * {r['clause']}")
-                L.append(f"    Risk: {r['risk']}")
-            L.append("")
-
-        # --- Suggested redline ---
-        redline = flag.get("suggested_redline", "")
+        L.append(explanation)
         if redline:
-            L.append("SUGGESTED REDLINE")
-            L.append("-" * 40)
-            L.append(redline)
             L.append("")
-
-        # --- Action needed ---
-        L.append("NEXT STEPS")
-        L.append("-" * 40)
-        if risk == "High":
-            L.append("This clause requires immediate review. Please check the")
-            L.append("Google Doc and add your comments or approve the redline.")
-        elif risk == "Medium":
-            L.append("This clause has moderate deviations. Please review the")
-            L.append("flagged text and confirm or suggest changes.")
-        else:
-            L.append("This clause has been flagged for your awareness.")
-            L.append("No urgent action needed, but please review when convenient.")
-        L.append("")
-
-        # --- Links ---
+            L.append(f"Suggested change: {redline}")
         if doc_url:
-            L.append(f"View Document: {doc_url}")
+            L.append("")
+            L.append(doc_url)
         L.append("")
-
-        # --- Footer ---
-        L.append("---")
-        L.append("DPA Contract Review Tool | ClearTax")
-        L.append("This is an automated notification. Do not reply to this email.")
+        L.append("— ClearTax DPA Review Tool")
 
         body = "\n".join(L)
 
-        # Subject line: concise and scannable
-        risk_emoji = {"High": "[!]", "Medium": "[~]", "Low": "[i]"}.get(risk, "")
         msg = MIMEText(body, "plain")
-        msg["Subject"] = f"{risk_emoji} DPA Review: {flag_id} — {section} ({cls}) — {team.upper()}"
+        msg["Subject"] = f"[{risk}] DPA: {section} — {cls}"
         msg["From"] = sender
         msg["To"] = email
 
@@ -292,6 +223,6 @@ def send_flag_email(
             sent += 1
             print(f"    Email sent to {team.upper()}: {email}")
         except Exception as e:
-            print(f"    Email to {email} failed: {e}")
+            raise RuntimeError(f"Email to {team.upper()} ({email}) failed: {e}") from e
 
     return sent
