@@ -205,13 +205,11 @@ elif page == "Review Dashboard":
 
     pending = sum(1 for fa in flag_actions.values() if fa["reviewer_action"] == "pending")
     accepted = sum(1 for fa in flag_actions.values() if fa["reviewer_action"] == "accepted")
-    rejected = sum(1 for fa in flag_actions.values() if fa["reviewer_action"] == "rejected")
+    closed = sum(1 for fa in flag_actions.values() if fa["reviewer_action"] == "closed")
     c6.metric("Pending Review", pending)
 
     st.markdown(
-        f"**Accepted:** {accepted} | **Rejected:** {rejected} | "
-        f"**Mode:** Direct LLM | "
-        f"**Model:** {metadata.get('llm_model', 'N/A')}"
+        f"**Accepted:** {accepted} | **Marked as Closed:** {closed}"
     )
 
     st.markdown("---")
@@ -234,7 +232,7 @@ elif page == "Review Dashboard":
             "All", "compliant", "deviation_minor", "deviation_major", "non_compliant"
         ])
     with fcol3:
-        filter_action = st.selectbox("Review Status", ["All", "pending", "accepted", "rejected", "approved"])
+        filter_action = st.selectbox("Review Status", ["All", "pending", "accepted", "closed"])
 
     def apply_filters(flag_list):
         result = flag_list
@@ -263,7 +261,7 @@ elif page == "Review Dashboard":
     def render_flag(f, tab_key):
         fa = flag_actions.get(f["flag_id"], {})
         action_status = fa.get("reviewer_action", "pending") if fa else "pending"
-        action_icon = {"pending": "", "accepted": "", "rejected": "", "approved": ""}.get(action_status, "")
+        action_icon = {"pending": "", "accepted": "", "closed": ""}.get(action_status, "")
 
         risk_color = {"High": "red", "Medium": "orange", "Low": "green"}.get(f["risk_level"], "gray")
         confidence = f.get("confidence", 0)
@@ -339,7 +337,7 @@ elif page == "Review Dashboard":
                     placeholder="Write a custom comment... Leave empty to use the auto-generated review comment.",
                 )
 
-            acol1, acol2, acol3 = st.columns(3)
+            acol1, acol2 = st.columns(2)
             with acol1:
                 if st.button("Accept", key=f"acc_{tab_key}_{f['flag_id']}", type="primary"):
                     update_flag_action(review_id, f["flag_id"], "accepted", "", review.get("reviewer", ""))
@@ -382,14 +380,9 @@ elif page == "Review Dashboard":
 
                     st.experimental_rerun()
             with acol2:
-                if st.button("Reject", key=f"rej_{tab_key}_{f['flag_id']}"):
-                    update_flag_action(review_id, f["flag_id"], "rejected", "", review.get("reviewer", ""))
-                    st.session_state["action_success"] = f"{f['flag_id']} rejected."
-                    st.experimental_rerun()
-            with acol3:
-                if st.button("Approve", key=f"apr_{tab_key}_{f['flag_id']}"):
-                    update_flag_action(review_id, f["flag_id"], "approved", "", review.get("reviewer", ""))
-                    st.session_state["action_success"] = f"{f['flag_id']} approved (acknowledged, no action taken)."
+                if st.button("Mark as Closed", key=f"cls_{tab_key}_{f['flag_id']}"):
+                    update_flag_action(review_id, f["flag_id"], "closed", "", review.get("reviewer", ""))
+                    st.session_state["action_success"] = f"{f['flag_id']} marked as closed."
                     st.experimental_rerun()
 
     # --- Tabs: Legal | Infosec | General ---
