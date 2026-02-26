@@ -6,6 +6,53 @@ from .auth import get_google_creds
 _COMMENT_HIGHLIGHT = {"red": 1.00, "green": 0.95, "blue": 0.60}
 
 
+def _build_professional_comment(flag: dict) -> str:
+    """Build a professional Google Doc comment as ClearTax authority."""
+    cls = flag.get("classification", "compliant")
+    explanation = flag.get("explanation", "")
+    redline = flag.get("suggested_redline", "")
+
+    if cls == "compliant":
+        return (
+            "ClearTax Review: This clause is consistent with our standard "
+            "Data Processing Agreement. No changes required."
+        )
+
+    # Opening line based on severity
+    if cls == "non_compliant":
+        opening = (
+            "ClearTax Review: We are unable to accept this clause as drafted. "
+            "It conflicts with ClearTax's standard Data Processing Agreement "
+            "and our internal compliance requirements."
+        )
+    elif cls == "deviation_major":
+        opening = (
+            "ClearTax Review: This clause deviates significantly from "
+            "ClearTax's standard Data Processing Agreement. We would require "
+            "amendments before we can agree to this provision."
+        )
+    else:  # deviation_minor
+        opening = (
+            "ClearTax Review: This clause contains minor differences from "
+            "ClearTax's standard Data Processing Agreement. We would like to "
+            "discuss the following concern."
+        )
+
+    # Reason
+    comment = f"{opening}\n\nConcern: {explanation}"
+
+    # Proposed amendment
+    if redline:
+        comment += f"\n\nProposed Amendment: {redline}"
+
+    comment += (
+        "\n\nPlease reach out to ClearTax's Legal/Compliance team "
+        "to discuss this further."
+    )
+
+    return comment
+
+
 def clear_old_comments(doc_id: str) -> int:
     from googleapiclient.discovery import build
     creds = get_google_creds()
@@ -153,25 +200,7 @@ def add_comment_single(doc_id: str, flag: dict, team_emails: dict[str, str] | No
     body_content = doc.get("body", {}).get("content", [])
     total_length = body_content[-1].get("endIndex", 0) if body_content else 0
 
-    risk = flag["risk_level"]
-    cls = flag["classification"].replace("_", " ").title()
-
-    rule_lines = []
-    tagged_teams = set()
-    for r in flag.get("triggered_rules", []):
-        rule_lines.append(f"  - [{r['source'].upper()}] {r['clause']} (Risk: {r['risk']})")
-        tagged_teams.add(r["source"])
-
-    comment_text = f"[{risk} Risk] {cls}\n\n{flag['explanation']}\n"
-    if rule_lines:
-        comment_text += "\nRulebook violations:\n" + "\n".join(rule_lines) + "\n"
-    if flag.get("suggested_redline"):
-        comment_text += f"\nSuggested redline:\n{flag['suggested_redline']}"
-
-    if team_emails and tagged_teams:
-        tags = [f"{t.upper()}: {team_emails[t]}" for t in tagged_teams if t in team_emails]
-        if tags:
-            comment_text += "\n\nReviewer: " + ", ".join(tags)
+    comment_text = _build_professional_comment(flag)
 
     start = flag.get("start_index", 0)
     end = flag.get("end_index", 0)
