@@ -1,0 +1,130 @@
+{
+  "teams": {
+    "legal": { "email": "adityasinghtmrr@gmail.com" },
+    "infosec": { "email": "adityasinghtmrr@gmail.com" }
+  },
+  "legal": [
+    {
+      "rule_id": "legal_1",
+      "clause": "Audits & Monitoring",
+      "subclause": "Where a counterparty has any direct right to audit Cleartax systems as part of the DPA",
+      "risk": "High"
+    },
+    {
+      "rule_id": "legal_2",
+      "clause": "Liability / Indemnity",
+      "subclause": "Where there is a clause in the DPA for indemnification on CT against or liability for data breaches or non-compliance",
+      "risk": "High"
+    },
+    {
+      "rule_id": "legal_3",
+      "clause": "Applicable Data Protection Laws",
+      "subclause": "Where the DPA includes compliances with data protection laws of jurisdictions other than GDPR and Indian IT Act",
+      "risk": "High"
+    },
+    {
+      "rule_id": "legal_4",
+      "clause": "Manner of processing of personal data",
+      "subclause": "Where the DPA says that the processing by Cleartax will be as per written instructions only from the controller",
+      "risk": "Medium"
+    },
+    {
+      "rule_id": "legal_5",
+      "clause": "Engaging subprocessors",
+      "subclause": "Where the DPA says that any subprocessors engaged by Cleartax will need to be approved by the customer or require prior consent",
+      "risk": "Medium"
+    },
+    {
+      "rule_id": "legal_6",
+      "clause": "Data Breaches",
+      "subclause": "Where the DPA says that the notification for security breaches to public or any authority will be decided by the customer",
+      "risk": "Medium"
+    },
+    {
+      "rule_id": "legal_7",
+      "clause": "Data Breaches",
+      "subclause": "Where the DPA says that the remediation plans for security breaches will be as approved by the customer",
+      "risk": "Medium"
+    },
+    {
+      "rule_id": "legal_8",
+      "clause": "Data Breaches",
+      "subclause": "Where the DPA requires Cleartax to bear any costs or expenses for security incidents including notification costs, credit monitoring, forensic investigation",
+      "risk": "Medium"
+    },
+    {
+      "rule_id": "legal_9",
+      "clause": "Dispute Resolution",
+      "subclause": "Governing Laws under the DPA are a local jurisdiction like Belgium, Germany, Spain, France etc. instead of Indian or English law",
+      "risk": "Medium"
+    },
+    {
+      "rule_id": "legal_10",
+      "clause": "Dispute Resolution",
+      "subclause": "Exclusive court jurisdiction under the DPA are local courts like Belgium, Germany, Spain, France etc.",
+      "risk": "Medium"
+    }
+  ],
+  "infosec": [
+    {
+      "rule_id": "infosec_1",
+      "clause": "Processing of Personal Data",
+      "subclause": "General processing obligations and controller instructions for personal data processing",
+      "risk": "Low"
+    },
+    {
+      "rule_id": "infosec_2",
+      "clause": "Disclosure of and Access to Personal Data",
+      "subclause": "The list of Sub-processors which the Data Controller has already authorised, and notification timelines for new sub-processors",
+      "risk": "Low"
+    },
+    {
+      "rule_id": "infosec_3",
+      "clause": "Maintenance of Records",
+      "subclause": "Requirements for maintaining records of processing activities",
+      "risk": "Low"
+    },
+    {
+      "rule_id": "infosec_4",
+      "clause": "Erasure, Return and Retention of Data",
+      "subclause": "Subject to Legal Purpose requirements, the processor shall delete or return all personal data after end of services within a specified timeframe",
+      "risk": "Medium"
+    },
+    {
+      "rule_id": "infosec_5",
+      "clause": "Other Obligations of the Data Processor",
+      "subclause": "Additional obligations on the data processor including confidentiality, training, and cooperation",
+      "risk": "Medium"
+    },
+    {
+      "rule_id": "infosec_6",
+      "clause": "Data Subject Rights",
+      "subclause": "Processor shall notify Data Controller if it receives a request from a data subject and assist in responding to such requests",
+      "risk": "Medium"
+    },
+    {
+      "rule_id": "infosec_7",
+      "clause": "International Data Transfers",
+      "subclause": "Requirements for cross-border transfers of personal data including Standard Contractual Clauses and adequacy decisions",
+      "risk": "Low"
+    },
+    {
+      "rule_id": "infosec_8",
+      "clause": "Personal Data Breach",
+      "subclause": "In the event of a Personal Data Breach, the processor shall notify the controller within a specified timeframe",
+      "risk": "Medium"
+    },
+    {
+      "rule_id": "infosec_9",
+      "clause": "Data Protection Impact Assessment and Prior Consultation",
+      "subclause": "Requirements for conducting DPIAs and consulting with supervisory authorities",
+      "risk": "Low"
+    },
+    {
+      "rule_id": "infosec_10",
+      "clause": "Monitoring and Audit",
+      "subclause": "Rights of the controller to monitor and audit the processor's compliance with the DPA",
+      "risk": "Low"
+    }
+  ]
+}

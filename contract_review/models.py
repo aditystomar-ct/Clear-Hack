@@ -21,4 +21,3 @@ class Rule:
     clause: str
     subclause: str
     risk: str
-    response: str

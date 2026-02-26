@@ -32,42 +32,15 @@ def clear_old_comments(doc_id: str) -> int:
     return deleted
 
 
-def _extract_doc_plain_text(doc_id: str) -> str:
-    from googleapiclient.discovery import build
-    creds = get_google_creds()
-    docs = build("docs", "v1", credentials=creds, cache_discovery=False)
-    doc = docs.documents().get(documentId=doc_id).execute()
-
-    parts: list[tuple[int, str]] = []
-    for element in doc.get("body", {}).get("content", []):
-        para = element.get("paragraph")
-        if not para:
-            continue
-        for elem in para.get("elements", []):
-            tr = elem.get("textRun")
-            if tr:
-                idx = elem.get("startIndex", 0)
-                parts.append((idx, tr.get("content", "")))
-    parts.sort(key=lambda x: x[0])
-
-    if not parts:
-        return ""
-    max_end = max(idx + len(txt) for idx, txt in parts)
-    buf = [" "] * max_end
-    for idx, txt in parts:
-        for j, ch in enumerate(txt):
-            if idx + j < max_end:
-                buf[idx + j] = ch
-    return "".join(buf)
-
-
-def add_comments_to_doc(doc_id: str, flags: list[dict]) -> int:
+def add_comments_to_doc(doc_id: str, flags: list[dict], team_emails: dict[str, str] | None = None) -> int:
     from googleapiclient.discovery import build
     creds = get_google_creds()
     drive = build("drive", "v3", credentials=creds, cache_discovery=False)
 
-    print("    Fetching doc text for exact quoting...")
-    full_text = _extract_doc_plain_text(doc_id)
+    docs = build("docs", "v1", credentials=creds, cache_discovery=False)
+    doc = docs.documents().get(documentId=doc_id).execute()
+    body_content = doc.get("body", {}).get("content", [])
+    total_length = body_content[-1].get("endIndex", 0) if body_content else 0
 
     added = 0
     for flag in flags:
@@ -78,8 +51,10 @@ def add_comments_to_doc(doc_id: str, flags: list[dict]) -> int:
         cls = flag["classification"].replace("_", " ").title()
 
         rule_lines = []
+        tagged_teams = set()
         for r in flag["triggered_rules"]:
             rule_lines.append(f"  - [{r['source'].upper()}] {r['clause']} (Risk: {r['risk']})")
+            tagged_teams.add(r["source"])
 
         comment_text = f"[{risk} Risk] {cls}\n\n{flag['explanation']}\n"
         if rule_lines:
@@ -87,20 +62,23 @@ def add_comments_to_doc(doc_id: str, flags: list[dict]) -> int:
         if flag["suggested_redline"]:
             comment_text += f"\nSuggested redline:\n{flag['suggested_redline']}"
 
+        # Add reviewer emails in comment
+        if team_emails and tagged_teams:
+            tags = [f"{t.upper()}: {team_emails[t]}" for t in tagged_teams if t in team_emails]
+            if tags:
+                comment_text += "\n\nReviewer: " + ", ".join(tags)
+
         start = flag.get("start_index", 0)
         end = flag.get("end_index", 0)
-        exact_text = full_text[start:end].strip()
-        quoted = exact_text[:300] if exact_text else flag["input_text"][:300]
 
         anchor = _json.dumps({
             "r": "head",
-            "a": [{"txt": {"o": start, "l": end - start, "ml": len(full_text)}}],
+            "a": [{"txt": {"o": start, "l": end - start, "ml": total_length}}],
         })
 
         body = {
             "content": comment_text,
             "anchor": anchor,
-            "quotedFileContent": {"mimeType": "text/plain", "value": quoted},
         }
 
         try:
@@ -162,3 +140,79 @@ def highlight_flagged_paragraphs(doc_id: str, flags: list[dict]) -> int:
         chunk = requests[chunk_start: chunk_start + BATCH_SIZE]
         docs.documents().batchUpdate(documentId=doc_id, body={"requests": chunk}).execute()
     return len(requests)
+
+
+def add_comment_single(doc_id: str, flag: dict, team_emails: dict[str, str] | None = None) -> bool:
+    """Add a single comment to Google Doc for one flag. No classification filtering."""
+    from googleapiclient.discovery import build
+    creds = get_google_creds()
+    drive = build("drive", "v3", credentials=creds, cache_discovery=False)
+    docs = build("docs", "v1", credentials=creds, cache_discovery=False)
+
+    doc = docs.documents().get(documentId=doc_id).execute()
+    body_content = doc.get("body", {}).get("content", [])
+    total_length = body_content[-1].get("endIndex", 0) if body_content else 0
+
+    risk = flag["risk_level"]
+    cls = flag["classification"].replace("_", " ").title()
+
+    rule_lines = []
+    tagged_teams = set()
+    for r in flag.get("triggered_rules", []):
+        rule_lines.append(f"  - [{r['source'].upper()}] {r['clause']} (Risk: {r['risk']})")
+        tagged_teams.add(r["source"])
+
+    comment_text = f"[{risk} Risk] {cls}\n\n{flag['explanation']}\n"
+    if rule_lines:
+        comment_text += "\nRulebook violations:\n" + "\n".join(rule_lines) + "\n"
+    if flag.get("suggested_redline"):
+        comment_text += f"\nSuggested redline:\n{flag['suggested_redline']}"
+
+    if team_emails and tagged_teams:
+        tags = [f"{t.upper()}: {team_emails[t]}" for t in tagged_teams if t in team_emails]
+        if tags:
+            comment_text += "\n\nReviewer: " + ", ".join(tags)
+
+    start = flag.get("start_index", 0)
+    end = flag.get("end_index", 0)
+
+    anchor = _json.dumps({
+        "r": "head",
+        "a": [{"txt": {"o": start, "l": end - start, "ml": total_length}}],
+    })
+
+    body = {"content": comment_text, "anchor": anchor}
+
+    try:
+        drive.comments().create(fileId=doc_id, body=body, fields="id,anchor").execute()
+        return True
+    except Exception as e:
+        print(f"    Could not add comment for {flag.get('flag_id', '?')}: {e}")
+        return False
+
+
+def highlight_single(doc_id: str, flag: dict) -> bool:
+    """Highlight a single flag's text range on Google Doc. No classification filtering."""
+    from googleapiclient.discovery import build
+    creds = get_google_creds()
+    docs = build("docs", "v1", credentials=creds, cache_discovery=False)
+
+    start = flag.get("start_index", 0)
+    end = flag.get("end_index", 0)
+    if start >= end:
+        return False
+
+    request = {
+        "updateTextStyle": {
+            "range": {"startIndex": start, "endIndex": end},
+            "textStyle": {"backgroundColor": {"color": {"rgbColor": _COMMENT_HIGHLIGHT}}},
+            "fields": "backgroundColor",
+        }
+    }
+
+    try:
+        docs.documents().batchUpdate(documentId=doc_id, body={"requests": [request]}).execute()
+        return True
+    except Exception as e:
+        print(f"    Could not highlight {flag.get('flag_id', '?')}: {e}")
+        return False

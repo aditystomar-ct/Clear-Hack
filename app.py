@@ -22,7 +22,7 @@ from contract_review.database import (
     update_flag_action, bulk_update_flags, get_review_stats,
     get_rule_effectiveness,
 )
-from contract_review.config import ANTHROPIC_API_KEY, PLAYBOOK_PATH
+from contract_review.config import ANTHROPIC_API_KEY, PLAYBOOK_PATH, LLM_MODEL
 
 st.set_page_config(
     page_title="DPA Contract Review",
@@ -49,9 +49,7 @@ st.sidebar.markdown("---")
 st.sidebar.markdown("**DPA Contract Review Tool**")
 st.sidebar.caption(f"LLM: {'Available' if ANTHROPIC_API_KEY else 'Not configured'}")
 
-# Team view filter (applies to Review Dashboard)
-team_view = st.sidebar.radio("Team View", ["All", "Legal", "Infosec"])
-st.sidebar.caption("Filter flags by rule source for team-specific reviews.")
+st.sidebar.caption("Review Dashboard has Legal / Infosec / General tabs.")
 
 
 # ---------------------------------------------------------------------------
@@ -59,7 +57,7 @@ st.sidebar.caption("Filter flags by rule source for team-specific reviews.")
 # ---------------------------------------------------------------------------
 if page == "Upload & Analyze":
     st.title("Upload & Analyze DPA")
-    st.markdown("Compare an incoming DPA against ClearTax's playbook and internal rulebook using embedding-based matching.")
+    st.markdown("Compare an incoming DPA against ClearTax's standard DPA and internal rulebook using Claude.")
 
     col1, col2 = st.columns(2)
 
@@ -73,13 +71,6 @@ if page == "Upload & Analyze":
             gdoc_url = st.text_input("Google Doc URL or ID")
 
     with col2:
-        analysis_mode = st.selectbox("Analysis Mode", ["hybrid", "llm", "heuristic"], index=0)
-        st.caption({
-            "hybrid": "Heuristic first, LLM only for flagged/uncertain clauses (~60% cost savings).",
-            "llm": "Send every clause to Claude for analysis (most accurate, highest cost).",
-            "heuristic": "Rule-based analysis only, no LLM calls (fastest, lowest cost).",
-        }[analysis_mode])
-
         reviewer_name = st.text_input("Reviewer Name", placeholder="Your name (optional)")
 
         playbook_option = st.selectbox("Playbook", ["ClearTax DPA (default)", "Custom Google Doc"])
@@ -87,8 +78,10 @@ if page == "Upload & Analyze":
         if playbook_option != "ClearTax DPA (default)":
             custom_playbook = st.text_input("Custom playbook Google Doc URL or ID")
 
-    if analysis_mode in ("hybrid", "llm") and not ANTHROPIC_API_KEY:
-        st.warning("ANTHROPIC_API_KEY not set in .env. LLM modes will fall back to heuristic.")
+        st.caption(f"Analysis: Direct LLM comparison using Claude ({LLM_MODEL if ANTHROPIC_API_KEY else 'NOT CONFIGURED'})")
+
+    if not ANTHROPIC_API_KEY:
+        st.warning("ANTHROPIC_API_KEY not set in .env. Analysis will not work.")
 
     st.markdown("---")
 
@@ -112,34 +105,28 @@ if page == "Upload & Analyze":
 
         progress_bar = st.progress(0, text="Starting analysis...")
         status_text = st.empty()
+        log_area = st.empty()
+        log_lines = []
 
         def progress_callback(step, total, msg):
-            progress_bar.progress(step / total, text=msg)
-            status_text.text(msg)
-
-        # Capture stdout for processing log
-        import io
-        import sys
-
-        old_stdout = sys.stdout
-        sys.stdout = buffer = io.StringIO()
+            pct = min(step / total, 1.0) if total > 0 else 0
+            progress_bar.progress(pct, text=msg)
+            status_text.markdown(f"**{msg}**")
+            log_lines.append(msg)
+            log_area.code("\n".join(log_lines[-15:]), language="text")
 
         try:
             from contract_review.pipeline import run_pipeline
             result = run_pipeline(
                 input_source=input_source,
-                playbook_source=custom_playbook,
-                analysis_mode=analysis_mode,
                 reviewer=reviewer_name,
                 progress_callback=progress_callback,
-                add_google_comments=(input_method == "Google Doc URL"),
             )
 
-            sys.stdout = old_stdout
-            output_log = buffer.getvalue()
-
             progress_bar.progress(1.0, text="Analysis complete!")
-            st.success(f"Analysis complete! Review ID: #{result['review_id']}")
+            status_text.empty()
+            log_area.empty()
+            st.success(f"Analysis complete! Review ID: #{result['review_id']} ({result['metadata'].get('elapsed_seconds', '?')}s)")
             st.session_state["current_review_id"] = result["review_id"]
 
             # Summary metrics
@@ -149,16 +136,14 @@ if page == "Upload & Analyze":
             c2.metric("High Risk", summary["high_risk_count"])
             c3.metric("Non-Compliant", summary["non_compliant_count"])
             c4.metric("Compliant", summary.get("classification_breakdown", {}).get("compliant", 0))
-            c5.metric("LLM Calls", result["metadata"].get("llm_calls", 0))
-
-            with st.expander("Processing Log", expanded=False):
-                st.code(output_log, language="text")
+            c5.metric("Time", f"{result['metadata'].get('elapsed_seconds', '?')}s")
 
             st.info("Go to **Review Dashboard** in the sidebar to review flags in detail.")
 
         except Exception as e:
-            sys.stdout = old_stdout
             progress_bar.empty()
+            status_text.empty()
+            log_area.empty()
             st.error(f"Analysis failed: {e}")
             import traceback
             st.code(traceback.format_exc())
@@ -219,14 +204,23 @@ elif page == "Review Dashboard":
 
     st.markdown(
         f"**Accepted:** {accepted} | **Rejected:** {rejected} | "
-        f"**Mode:** {metadata.get('analysis_mode', 'N/A')} | "
-        f"**Model:** {metadata.get('embedding_model', 'N/A')}"
+        f"**Mode:** Direct LLM | "
+        f"**Model:** {metadata.get('llm_model', 'N/A')}"
     )
 
     st.markdown("---")
 
+    # Check if input was a Google Doc
+    doc_id = metadata.get("input_source", "")
+    is_google_doc = doc_id and not doc_id.endswith(".docx") and len(doc_id) > 15
+
+    # Load team emails once
+    from contract_review.extractors import load_team_emails
+    from contract_review.config import RULEBOOK_PATH
+    team_emails = load_team_emails(RULEBOOK_PATH)
+
     # Filters
-    fcol1, fcol2, fcol3, fcol4 = st.columns(4)
+    fcol1, fcol2, fcol3 = st.columns(3)
     with fcol1:
         filter_risk = st.selectbox("Risk Level", ["All", "High", "Medium", "Low"])
     with fcol2:
@@ -235,61 +229,32 @@ elif page == "Review Dashboard":
         ])
     with fcol3:
         filter_action = st.selectbox("Review Status", ["All", "pending", "accepted", "rejected", "overridden"])
-    with fcol4:
-        filter_source = st.selectbox("Rule Source", ["All", "legal", "infosec"])
+
+    def apply_filters(flag_list):
+        result = flag_list
+        if filter_risk != "All":
+            result = [f for f in result if f["risk_level"] == filter_risk]
+        if filter_cls != "All":
+            result = [f for f in result if f["classification"] == filter_cls]
+        if filter_action != "All":
+            result = [
+                f for f in result
+                if flag_actions.get(f["flag_id"], {}).get("reviewer_action") == filter_action
+            ]
+        return result
+
+    # Split flags into Legal, Infosec, and General (no triggered rules)
+    legal_flags = [f for f in flags if any(r.get("source") == "legal" for r in f.get("triggered_rules", []))]
+    infosec_flags = [f for f in flags if any(r.get("source") == "infosec" for r in f.get("triggered_rules", []))]
+    general_flags = [f for f in flags if not f.get("triggered_rules")]
 
     # Apply filters
-    filtered = flags
+    legal_filtered = apply_filters(legal_flags)
+    infosec_filtered = apply_filters(infosec_flags)
+    general_filtered = apply_filters(general_flags)
 
-    if filter_risk != "All":
-        filtered = [f for f in filtered if f["risk_level"] == filter_risk]
-    if filter_cls != "All":
-        filtered = [f for f in filtered if f["classification"] == filter_cls]
-    if filter_action != "All":
-        filtered = [
-            f for f in filtered
-            if flag_actions.get(f["flag_id"], {}).get("reviewer_action") == filter_action
-        ]
-    if filter_source != "All":
-        filtered = [
-            f for f in filtered
-            if any(r.get("source") == filter_source for r in f.get("triggered_rules", []))
-        ]
-
-    # Team view filter (from sidebar)
-    if team_view == "Legal":
-        filtered = [
-            f for f in filtered
-            if any(r.get("source") == "legal" for r in f.get("triggered_rules", []))
-            or not f.get("triggered_rules")
-        ]
-    elif team_view == "Infosec":
-        filtered = [
-            f for f in filtered
-            if any(r.get("source") == "infosec" for r in f.get("triggered_rules", []))
-        ]
-
-    # Bulk actions
-    bcol1, bcol2, bcol3 = st.columns([2, 2, 6])
-    with bcol1:
-        if st.button("Accept All Compliant"):
-            compliant_ids = [f["flag_id"] for f in flags if f["classification"] == "compliant"]
-            if compliant_ids:
-                count = bulk_update_flags(review_id, compliant_ids, "accepted", reviewer_name if 'reviewer_name' in dir() else "")
-                st.success(f"Accepted {count} compliant clauses.")
-                st.rerun()
-    with bcol2:
-        if st.button("Accept All Low Risk"):
-            low_ids = [f["flag_id"] for f in flags if f["risk_level"] == "Low"]
-            if low_ids:
-                count = bulk_update_flags(review_id, low_ids, "accepted", "")
-                st.success(f"Accepted {count} low-risk clauses.")
-                st.rerun()
-
-    st.markdown(f"Showing **{len(filtered)}** of {len(flags)} clauses")
-
-    # Display flags
-    for f in filtered:
+    # Helper to render a single flag card
+    def render_flag(f, tab_key):
         fa = flag_actions.get(f["flag_id"], {})
         action_status = fa.get("reviewer_action", "pending") if fa else "pending"
         action_icon = {"pending": "", "accepted": "", "rejected": "", "overridden": ""}.get(action_status, "")
@@ -297,8 +262,13 @@ elif page == "Review Dashboard":
         risk_color = {"High": "red", "Medium": "orange", "Low": "green"}.get(f["risk_level"], "gray")
         confidence = f.get("confidence", 0)
 
+        # Show which teams are tagged
+        tagged_teams = set(r.get("source", "") for r in f.get("triggered_rules", []))
+        team_tags = " | ".join(t.upper() for t in sorted(tagged_teams)) if tagged_teams else "General"
+
         expander_label = (
             f"{action_icon} {f['flag_id']} | :{risk_color}[{f['risk_level']}] | "
+            f"{team_tags} | "
             f"{(f.get('input_clause_section') or 'N/A')[:40]} | "
             f"{f['classification'].replace('_', ' ').title()} | "
             f"Conf: {confidence*100:.0f}%"
@@ -309,15 +279,14 @@ elif page == "Review Dashboard":
             left, right = st.columns(2)
             with left:
                 st.markdown("**Incoming Clause**")
-                st.text_area("", f.get("input_text", ""), height=120, disabled=True, key=f"inp_{f['flag_id']}")
+                st.text_area("Incoming", f.get("input_text", ""), height=120, disabled=True, key=f"inp_{tab_key}_{f['flag_id']}", label_visibility="collapsed")
             with right:
                 st.markdown("**Playbook Clause**")
                 pb_text = f.get("matched_playbook_text") or "No playbook match"
-                st.text_area("", pb_text, height=120, disabled=True, key=f"pb_{f['flag_id']}")
+                st.text_area("Playbook", pb_text, height=120, disabled=True, key=f"pb_{tab_key}_{f['flag_id']}", label_visibility="collapsed")
 
             # Match info
             st.markdown(
-                f"**Similarity:** {f.get('similarity_score', 0):.2f} | "
                 f"**Match Type:** {f.get('match_type', 'N/A')} | "
                 f"**Risk:** :{risk_color}[{f['risk_level']}] | "
                 f"**Classification:** {f['classification'].replace('_', ' ').title()}"
@@ -332,7 +301,15 @@ elif page == "Review Dashboard":
                 st.markdown("**Triggered Rules:**")
                 for r in triggered:
                     source_tag = r.get("source", "").upper()
-                    st.markdown(f"- [{source_tag}] {r.get('clause', '')} (Risk: {r.get('risk', 'N/A')}, Score: {r.get('match_score', 0):.2f})")
+                    team_email = team_emails.get(r.get("source", ""), "")
+                    email_display = f" — {team_email}" if team_email else ""
+                    st.markdown(f"- [{source_tag}]{email_display} {r.get('clause', '')} (Risk: {r.get('risk', 'N/A')})")
+
+            # Show team emails that will receive notification
+            notify_teams = tagged_teams if tagged_teams else set(team_emails.keys())
+            email_list = [f"{t.upper()}: {team_emails[t]}" for t in sorted(notify_teams) if t in team_emails]
+            if email_list:
+                st.markdown(f"**Email notification to:** {', '.join(email_list)}")
 
             # Suggested redline
             if f.get("suggested_redline"):
@@ -345,21 +322,72 @@ elif page == "Review Dashboard":
             if fa and fa.get("reviewer_note"):
                 st.caption(f"Note: {fa['reviewer_note']}")
 
-            note = st.text_input("Note (optional)", key=f"note_{f['flag_id']}", placeholder="Reason...")
+            note = st.text_input("Note (optional)", key=f"note_{tab_key}_{f['flag_id']}", placeholder="Reason...")
 
             acol1, acol2, acol3 = st.columns(3)
             with acol1:
-                if st.button("Accept", key=f"acc_{f['flag_id']}", type="primary"):
+                if st.button("Accept", key=f"acc_{tab_key}_{f['flag_id']}", type="primary"):
                     update_flag_action(review_id, f["flag_id"], "accepted", note, review.get("reviewer", ""))
-                    st.rerun()
+
+                    # Comment + highlight on Google Doc
+                    if is_google_doc:
+                        try:
+                            from contract_review.google_doc import add_comment_single, highlight_single
+                            add_comment_single(doc_id, f, team_emails)
+                            highlight_single(doc_id, f)
+                        except Exception as e:
+                            st.error(f"Google Doc update failed: {e}")
+
+                    # Send email to relevant team(s)
+                    try:
+                        from contract_review.notifications import send_flag_email
+                        doc_url = f"https://docs.google.com/document/d/{doc_id}" if is_google_doc else ""
+                        send_flag_email(
+                            contract_name=metadata.get("contract_name", metadata.get("input_source", "")),
+                            flag=f,
+                            team_emails=team_emails,
+                            doc_url=doc_url,
+                        )
+                    except Exception as e:
+                        st.error(f"Email failed: {e}")
+
+                    st.experimental_rerun()
             with acol2:
-                if st.button("Reject", key=f"rej_{f['flag_id']}"):
+                if st.button("Reject", key=f"rej_{tab_key}_{f['flag_id']}"):
                     update_flag_action(review_id, f["flag_id"], "rejected", note, review.get("reviewer", ""))
-                    st.rerun()
+                    st.experimental_rerun()
             with acol3:
-                if st.button("Override", key=f"ovr_{f['flag_id']}"):
+                if st.button("Override", key=f"ovr_{tab_key}_{f['flag_id']}"):
                     update_flag_action(review_id, f["flag_id"], "overridden", note, review.get("reviewer", ""))
-                    st.rerun()
+                    st.experimental_rerun()
+
+    # --- Tabs: Legal | Infosec | General ---
+    tab_legal, tab_infosec, tab_general = st.tabs([
+        f"Legal ({len(legal_filtered)})",
+        f"Infosec ({len(infosec_filtered)})",
+        f"General ({len(general_filtered)})",
+    ])
+
+    with tab_legal:
+        st.markdown(f"**Legal team flags** — email: `{team_emails.get('legal', 'not configured')}`")
+        if not legal_filtered:
+            st.info("No legal flags match current filters.")
+        for f in legal_filtered:
+            render_flag(f, "legal")
+
+    with tab_infosec:
+        st.markdown(f"**Infosec team flags** — email: `{team_emails.get('infosec', 'not configured')}`")
+        if not infosec_filtered:
+            st.info("No infosec flags match current filters.")
+        for f in infosec_filtered:
+            render_flag(f, "infosec")
+
+    with tab_general:
+        st.markdown("**Flags with no specific rulebook match** — email sent to all teams on accept")
+        if not general_filtered:
+            st.info("No general flags match current filters.")
+        for f in general_filtered:
+            render_flag(f, "general")
 
 
 # ---------------------------------------------------------------------------

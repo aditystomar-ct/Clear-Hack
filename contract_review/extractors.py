@@ -24,102 +24,66 @@ def extract_doc_id(url_or_id: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Load Rulebook from XLSX
+# Load Rulebook from JSON
 # ---------------------------------------------------------------------------
 
 def load_rulebook(path: Path) -> list[Rule]:
     """
-    Parse DPA Rulebook.xlsx dynamically.
-    Reads Legal and Infosec sheets, extracts rules with clause/subclause/risk/response.
+    Load rulebook from rulebook.json.
+    Expects {"legal": [...], "infosec": [...]} where each entry has
+    rule_id, clause, subclause, risk, response.
     """
-    import openpyxl
+    import json
 
     if not path.exists():
         print(f"Error: Rulebook not found: {path}")
         sys.exit(1)
 
-    wb = openpyxl.load_workbook(str(path), read_only=True)
+    data = json.loads(path.read_text())
     rules: list[Rule] = []
-    rule_idx = 0
 
-    for sheet_name in wb.sheetnames:
-        name_lower = sheet_name.lower()
-        if "legal" in name_lower:
-            source = "legal"
-        elif "infosec" in name_lower:
-            source = "infosec"
-        else:
-            continue
-
-        ws = wb[sheet_name]
-        rows = list(ws.iter_rows(values_only=True))
-        if len(rows) < 2:
-            continue
-
-        header = [str(c).lower().strip() if c else "" for c in rows[0]]
-
-        def find_col(*keywords):
-            for i, h in enumerate(header):
-                if any(kw in h for kw in keywords):
-                    return i
-            return None
-
-        col_clause = find_col("clause")
-        col_sub = find_col("sub-clause", "subclause", "sub clause")
-        col_risk = find_col("risk")
-        col_resp = find_col("response")
-
-        if col_clause is None and col_sub is None:
-            continue
-
-        if col_sub is None:
-            col_sub = col_clause
-
-        current_clause = ""
-        for row in rows[1:]:
-            def cell(idx):
-                if idx is None or idx >= len(row):
-                    return ""
-                return str(row[idx]).strip() if row[idx] else ""
-
-            clause_val = cell(col_clause)
-            sub_val = cell(col_sub)
-            risk_val = cell(col_risk)
-            resp_val = cell(col_resp)
-
-            if clause_val:
-                current_clause = clause_val
-
-            if not risk_val or risk_val.lower() in ("none", "risk", ""):
-                continue
-            if not resp_val:
-                continue
-
-            rule_idx += 1
+    for source in ("legal", "infosec"):
+        for entry in data.get(source, []):
             rules.append(Rule(
-                rule_id=f"{source}_{rule_idx}",
+                rule_id=entry["rule_id"],
                 source=source,
-                clause=current_clause,
-                subclause=sub_val or current_clause,
-                risk=risk_val,
-                response=resp_val,
+                clause=entry["clause"],
+                subclause=entry.get("subclause", entry["clause"]),
+                risk=entry["risk"],
             ))
 
-    wb.close()
     return rules
+
+
+def load_team_emails(path: Path) -> dict[str, str]:
+    """Load team email addresses from rulebook.json 'teams' section."""
+    import json
+    data = json.loads(path.read_text())
+    teams = data.get("teams", {})
+    return {team: info.get("email", "") for team, info in teams.items() if info.get("email")}
 
 
 # ---------------------------------------------------------------------------
 # Fetch Paragraphs
 # ---------------------------------------------------------------------------
 
-def fetch_gdoc_paragraphs(doc_id: str) -> list[dict]:
-    """Fetch paragraphs from a Google Doc via the Docs API."""
-    from googleapiclient.discovery import build
+def fetch_gdoc_paragraphs(doc_id: str) -> tuple[list[dict], str]:
+    """Fetch paragraphs from a Google Doc via the Docs API.
+
+    Returns (paragraphs, doc_title).
+    """
+    import requests as _requests
+    from google.auth.transport.requests import AuthorizedSession
 
     creds = get_google_creds()
-    service = build("docs", "v1", credentials=creds, cache_discovery=False)
-    doc = service.documents().get(documentId=doc_id).execute()
+    session = AuthorizedSession(creds)
+    session.timeout = 60
+
+    resp = session.get(f"https://docs.googleapis.com/v1/documents/{doc_id}")
+    resp.raise_for_status()
+    doc = resp.json()
+
+    doc_title = doc.get("title", "")
 
     paragraphs: list[dict] = []
     for element in doc.get("body", {}).get("content", []):
@@ -140,7 +104,7 @@ def fetch_gdoc_paragraphs(doc_id: str) -> list[dict]:
                 "start_index": start,
                 "end_index": end,
             })
-    return paragraphs
+    return paragraphs, doc_title
 
 
 def fetch_docx_paragraphs(path: Path) -> list[dict]:
@@ -152,6 +116,46 @@ def fetch_docx_paragraphs(path: Path) -> list[dict]:
     offset = 0
     for para in doc.paragraphs:
         text = para.text.strip()
+        if text:
+            paragraphs.append({
+                "text": text,
+                "start_index": offset,
+                "end_index": offset + len(text),
+            })
+            offset += len(text) + 1
+    return paragraphs
+
+
+def fetch_md_paragraphs(path: Path) -> list[dict]:
+    """Read paragraphs from a Markdown (.md) file.
+
+    Splits on blank lines, strips markdown formatting (bold, headings, etc.),
+    and returns non-empty paragraphs with char offsets.
+    """
+    raw = path.read_text(encoding="utf-8")
+
+    # Split on one or more blank lines
+    import re as _re
+    blocks = _re.split(r"\n\s*\n", raw)
+
+    paragraphs: list[dict] = []
+    offset = 0
+    for block in blocks:
+        # Clean markdown formatting
+        text = block.strip()
+        if not text:
+            continue
+        # Remove markdown bold/italic markers
+        text = _re.sub(r"\*{1,3}([^*]+)\*{1,3}", r"\1", text)
+        # Remove heading markers
+        text = _re.sub(r"^#{1,6}\s*", "", text, flags=_re.MULTILINE)
+        # Remove markdown link syntax [text](url) -> text
+        text = _re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", text)
+        # Remove escape backslashes
+        text = text.replace("\\[", "[").replace("\\]", "]")
+        # Collapse multiple spaces/newlines into single space
+        text = _re.sub(r"\s+", " ", text).strip()
+
         if text:
             paragraphs.append({
                 "text": text,
