@@ -20,8 +20,10 @@ from .config import (
 def _send_email(to: str, subject: str, body: str):
     """Send a single email. Uses Resend API if configured, else SMTP."""
     if RESEND_API_KEY:
+        print(f"    [email] Using Resend → {to}")
         return _send_via_resend(to, subject, body)
     if SMTP_USER and SMTP_PASSWORD:
+        print(f"    [email] Using SMTP → {to}")
         return _send_via_smtp(to, subject, body)
     raise RuntimeError("No email provider configured. Set RESEND_API_KEY or SMTP_USER/SMTP_PASSWORD.")
 
