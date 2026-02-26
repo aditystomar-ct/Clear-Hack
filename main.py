@@ -3,9 +3,9 @@
 DPA Contract Review Tool — CLI entry point.
 
 Usage:
-    python main.py <input_doc_url_or_docx_path> [--playbook <path_or_url>] [--mode hybrid|llm|heuristic]
+    python main.py <input_doc_url_or_docx_path> [--playbook <path_or_url>]
 
-Comments on Google Doc, highlights flagged content, and emails notifications.
+Compares incoming DPA against ClearTax standard using Claude.
 """
 
 import sys
@@ -16,9 +16,7 @@ def main():
 
     parser = argparse.ArgumentParser(description="DPA Contract Review Tool")
     parser.add_argument("input", help="Input DPA: .docx file path or Google Doc URL/ID")
-    parser.add_argument("--playbook", default=None, help="Playbook: .docx path or Google Doc URL/ID")
-    parser.add_argument("--mode", default="hybrid", choices=["heuristic", "llm", "hybrid"],
-                        help="Analysis mode (default: hybrid)")
+    parser.add_argument("--playbook", default=None, help="Playbook: .docx/.md path or Google Doc URL/ID")
     parser.add_argument("--reviewer", default="", help="Reviewer name")
     args = parser.parse_args()
 
@@ -27,7 +25,6 @@ def main():
     result = run_pipeline(
         input_source=args.input,
         playbook_source=args.playbook,
-        analysis_mode=args.mode,
         reviewer=args.reviewer,
     )
 

@@ -67,8 +67,11 @@ def load_team_emails(path: Path) -> dict[str, str]:
 # Fetch Paragraphs
 # ---------------------------------------------------------------------------
 
-def fetch_gdoc_paragraphs(doc_id: str) -> list[dict]:
-    """Fetch paragraphs from a Google Doc via the Docs API."""
+def fetch_gdoc_paragraphs(doc_id: str) -> tuple[list[dict], str]:
+    """Fetch paragraphs from a Google Doc via the Docs API.
+
+    Returns (paragraphs, doc_title).
+    """
     import requests as _requests
     from google.auth.transport.requests import AuthorizedSession
 
@@ -79,6 +82,8 @@ def fetch_gdoc_paragraphs(doc_id: str) -> list[dict]:
     resp = session.get(f"https://docs.googleapis.com/v1/documents/{doc_id}")
     resp.raise_for_status()
     doc = resp.json()
+
+    doc_title = doc.get("title", "")
 
     paragraphs: list[dict] = []
     for element in doc.get("body", {}).get("content", []):
@@ -99,7 +104,7 @@ def fetch_gdoc_paragraphs(doc_id: str) -> list[dict]:
                 "start_index": start,
                 "end_index": end,
             })
-    return paragraphs
+    return paragraphs, doc_title
 
 
 def fetch_docx_paragraphs(path: Path) -> list[dict]:
@@ -111,6 +116,46 @@ def fetch_docx_paragraphs(path: Path) -> list[dict]:
     offset = 0
     for para in doc.paragraphs:
         text = para.text.strip()
+        if text:
+            paragraphs.append({
+                "text": text,
+                "start_index": offset,
+                "end_index": offset + len(text),
+            })
+            offset += len(text) + 1
+    return paragraphs
+
+
+def fetch_md_paragraphs(path: Path) -> list[dict]:
+    """Read paragraphs from a Markdown (.md) file.
+
+    Splits on blank lines, strips markdown formatting (bold, headings, etc.),
+    and returns non-empty paragraphs with char offsets.
+    """
+    raw = path.read_text(encoding="utf-8")
+
+    # Split on one or more blank lines
+    import re as _re
+    blocks = _re.split(r"\n\s*\n", raw)
+
+    paragraphs: list[dict] = []
+    offset = 0
+    for block in blocks:
+        # Clean markdown formatting
+        text = block.strip()
+        if not text:
+            continue
+        # Remove markdown bold/italic markers
+        text = _re.sub(r"\*{1,3}([^*]+)\*{1,3}", r"\1", text)
+        # Remove heading markers
+        text = _re.sub(r"^#{1,6}\s*", "", text, flags=_re.MULTILINE)
+        # Remove markdown link syntax [text](url) -> text
+        text = _re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", text)
+        # Remove escape backslashes
+        text = text.replace("\\[", "[").replace("\\]", "]")
+        # Collapse multiple spaces/newlines into single space
+        text = _re.sub(r"\s+", " ", text).strip()
+
         if text:
             paragraphs.append({
                 "text": text,

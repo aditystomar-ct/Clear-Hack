@@ -1,29 +1,83 @@
 """Output generation: summary, flag building, rich terminal output."""
 
+from difflib import SequenceMatcher
 
-def build_flag(idx, inp, pb, sim, mt, rules, analysis) -> dict:
+
+def _find_paragraph_position(clause_text: str, paragraphs: list[dict]) -> tuple[int, int]:
+    """Find the best-matching paragraph for a clause and return its (start_index, end_index).
+
+    Tries exact substring match first, then falls back to fuzzy matching.
+    """
+    if not paragraphs:
+        return 0, 0
+
+    if not clause_text:
+        return paragraphs[0]["start_index"], paragraphs[0]["end_index"]
+
+    # Normalize for matching
+    clause_lower = clause_text.lower().strip()
+    if not clause_lower:
+        return paragraphs[0]["start_index"], paragraphs[0]["end_index"]
+
+    # Try exact substring match
+    for p in paragraphs:
+        if clause_lower[:80] in p["text"].lower():
+            return p["start_index"], p["end_index"]
+
+    # Fuzzy match — find paragraph with highest similarity
+    best_score = 0.0
+    best_para = paragraphs[0]
+    for p in paragraphs:
+        score = SequenceMatcher(None, clause_lower[:200], p["text"].lower()[:200]).ratio()
+        if score > best_score:
+            best_score = score
+            best_para = p
+
+    return best_para["start_index"], best_para["end_index"]
+
+
+def build_flag_from_llm(idx: int, llm_result: dict, input_paragraphs: list[dict]) -> dict:
+    """Build a flag dict from LLM analysis result, mapping clause text to paragraph positions."""
+
+    clause_text = llm_result.get("clause_text") or ""
+    explanation = llm_result.get("explanation") or ""
+    suggested_redline = llm_result.get("suggested_redline") or ""
+    section = llm_result.get("section") or ""
+    matched_pb_text = llm_result.get("matched_playbook_text") or None
+    matched_pb_section = llm_result.get("matched_playbook_section") or None
+    cls = llm_result.get("classification") or "compliant"
+    risk = llm_result.get("risk_level") or "Low"
+    confidence = llm_result.get("confidence")
+    if confidence is None:
+        confidence = 0.5
+    triggered_rules = llm_result.get("triggered_rules") or []
+
+    start_index, end_index = _find_paragraph_position(clause_text, input_paragraphs)
+
+    # Determine match type
+    if matched_pb_section:
+        match_type = "matched"
+    else:
+        match_type = "new_clause"
+
     return {
         "flag_id": f"FLAG_{idx:03d}",
-        "input_clause_id": inp.id,
-        "input_clause_section": inp.section,
-        "input_text": inp.text,
-        "matched_playbook_id": pb.id if mt != "new_clause" else None,
-        "matched_playbook_text": pb.text if mt != "new_clause" else None,
-        "similarity_score": round(sim, 4),
-        "match_type": mt,
-        "triggered_rules": [
-            {"rule_id": r.rule_id, "source": r.source,
-             "clause": r.clause, "risk": r.risk, "match_score": round(s, 4)}
-            for r, s in rules
-        ],
-        "classification": analysis["classification"],
-        "risk_level": analysis["risk_level"],
-        "explanation": analysis["explanation"],
-        "suggested_redline": analysis["suggested_redline"],
-        "confidence": analysis.get("confidence", 0.5),
-        "start_index": inp.start_index,
-        "end_index": inp.end_index,
-        "raw_text": inp.raw_text,
+        "input_clause_id": f"clause_{idx}",
+        "input_clause_section": section,
+        "input_text": clause_text,
+        "matched_playbook_id": None,
+        "matched_playbook_text": matched_pb_text,
+        "similarity_score": None,
+        "match_type": match_type,
+        "triggered_rules": triggered_rules,
+        "classification": cls,
+        "risk_level": risk,
+        "explanation": explanation,
+        "suggested_redline": suggested_redline,
+        "confidence": confidence,
+        "start_index": start_index,
+        "end_index": end_index,
+        "raw_text": clause_text[:200],
     }
 
 
@@ -77,7 +131,7 @@ def print_rich_summary(summary: dict, flags: list[dict], metadata: dict) -> None
         f"[bold red]Major Dev:[/bold red] {cls_bd.get('deviation_major', 0)}  "
         f"[bold]Non-Compliant:[/bold] {cls_bd.get('non_compliant', 0)}\n"
         f"[bold]Mode:[/bold] {metadata.get('analysis_mode', 'N/A')}  "
-        f"[bold]Model:[/bold] {metadata.get('embedding_model', 'N/A')}"
+        f"[bold]Model:[/bold] {metadata.get('llm_model', 'N/A')}"
     )
     console.print(Panel(summary_text, title="DPA Review Summary", border_style="blue", expand=False))
 

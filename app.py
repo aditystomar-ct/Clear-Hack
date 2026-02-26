@@ -22,7 +22,7 @@ from contract_review.database import (
     update_flag_action, bulk_update_flags, get_review_stats,
     get_rule_effectiveness,
 )
-from contract_review.config import ANTHROPIC_API_KEY, PLAYBOOK_PATH
+from contract_review.config import ANTHROPIC_API_KEY, PLAYBOOK_PATH, LLM_MODEL
 
 st.set_page_config(
     page_title="DPA Contract Review",
@@ -57,7 +57,7 @@ st.sidebar.caption("Review Dashboard has Legal / Infosec / General tabs.")
 # ---------------------------------------------------------------------------
 if page == "Upload & Analyze":
     st.title("Upload & Analyze DPA")
-    st.markdown("Compare an incoming DPA against ClearTax's playbook and internal rulebook using embedding-based matching.")
+    st.markdown("Compare an incoming DPA against ClearTax's standard DPA and internal rulebook using Claude.")
 
     col1, col2 = st.columns(2)
 
@@ -71,13 +71,6 @@ if page == "Upload & Analyze":
             gdoc_url = st.text_input("Google Doc URL or ID")
 
     with col2:
-        analysis_mode = st.selectbox("Analysis Mode", ["hybrid", "llm", "heuristic"], index=0)
-        st.caption({
-            "hybrid": "Heuristic first, LLM only for flagged/uncertain clauses (~60% cost savings).",
-            "llm": "Send every clause to Claude for analysis (most accurate, highest cost).",
-            "heuristic": "Rule-based analysis only, no LLM calls (fastest, lowest cost).",
-        }[analysis_mode])
-
         reviewer_name = st.text_input("Reviewer Name", placeholder="Your name (optional)")
 
         playbook_option = st.selectbox("Playbook", ["ClearTax DPA (default)", "Custom Google Doc"])
@@ -85,8 +78,10 @@ if page == "Upload & Analyze":
         if playbook_option != "ClearTax DPA (default)":
             custom_playbook = st.text_input("Custom playbook Google Doc URL or ID")
 
-    if analysis_mode in ("hybrid", "llm") and not ANTHROPIC_API_KEY:
-        st.warning("ANTHROPIC_API_KEY not set in .env. LLM modes will fall back to heuristic.")
+        st.caption(f"Analysis: Direct LLM comparison using Claude ({LLM_MODEL if ANTHROPIC_API_KEY else 'NOT CONFIGURED'})")
+
+    if not ANTHROPIC_API_KEY:
+        st.warning("ANTHROPIC_API_KEY not set in .env. Analysis will not work.")
 
     st.markdown("---")
 
@@ -124,7 +119,6 @@ if page == "Upload & Analyze":
             from contract_review.pipeline import run_pipeline
             result = run_pipeline(
                 input_source=input_source,
-                analysis_mode=analysis_mode,
                 reviewer=reviewer_name,
                 progress_callback=progress_callback,
             )
@@ -142,7 +136,7 @@ if page == "Upload & Analyze":
             c2.metric("High Risk", summary["high_risk_count"])
             c3.metric("Non-Compliant", summary["non_compliant_count"])
             c4.metric("Compliant", summary.get("classification_breakdown", {}).get("compliant", 0))
-            c5.metric("LLM Batches", f"{(result['metadata'].get('llm_calls', 0) + 4) // 5}")
+            c5.metric("Time", f"{result['metadata'].get('elapsed_seconds', '?')}s")
 
             st.info("Go to **Review Dashboard** in the sidebar to review flags in detail.")
 
@@ -210,8 +204,8 @@ elif page == "Review Dashboard":
 
     st.markdown(
         f"**Accepted:** {accepted} | **Rejected:** {rejected} | "
-        f"**Mode:** {metadata.get('analysis_mode', 'N/A')} | "
-        f"**Model:** {metadata.get('embedding_model', 'N/A')}"
+        f"**Mode:** Direct LLM | "
+        f"**Model:** {metadata.get('llm_model', 'N/A')}"
     )
 
     st.markdown("---")
@@ -293,7 +287,6 @@ elif page == "Review Dashboard":
 
             # Match info
             st.markdown(
-                f"**Similarity:** {f.get('similarity_score', 0):.2f} | "
                 f"**Match Type:** {f.get('match_type', 'N/A')} | "
                 f"**Risk:** :{risk_color}[{f['risk_level']}] | "
                 f"**Classification:** {f['classification'].replace('_', ' ').title()}"
@@ -310,7 +303,7 @@ elif page == "Review Dashboard":
                     source_tag = r.get("source", "").upper()
                     team_email = team_emails.get(r.get("source", ""), "")
                     email_display = f" — {team_email}" if team_email else ""
-                    st.markdown(f"- [{source_tag}]{email_display} {r.get('clause', '')} (Risk: {r.get('risk', 'N/A')}, Score: {r.get('match_score', 0):.2f})")
+                    st.markdown(f"- [{source_tag}]{email_display} {r.get('clause', '')} (Risk: {r.get('risk', 'N/A')})")
 
             # Show team emails that will receive notification
             notify_teams = tagged_teams if tagged_teams else set(team_emails.keys())
@@ -350,7 +343,7 @@ elif page == "Review Dashboard":
                         from contract_review.notifications import send_flag_email
                         doc_url = f"https://docs.google.com/document/d/{doc_id}" if is_google_doc else ""
                         send_flag_email(
-                            contract_name=metadata.get("input_source", ""),
+                            contract_name=metadata.get("contract_name", metadata.get("input_source", "")),
                             flag=f,
                             team_emails=team_emails,
                             doc_url=doc_url,

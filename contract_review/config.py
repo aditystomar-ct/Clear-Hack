@@ -19,25 +19,15 @@ if _env_path.exists():
 # Paths
 # ---------------------------------------------------------------------------
 RULEBOOK_PATH = BASE_DIR / "rulebook.json"
-PLAYBOOK_PATH = BASE_DIR / "Clear Tax_DPA.docx"
+PLAYBOOK_PATH = BASE_DIR / "ClearTax_DPA.md"
 CREDS_PATH = BASE_DIR / "credentials.json"
 DB_PATH = BASE_DIR / "review.db"
-
-# ---------------------------------------------------------------------------
-# Embedding & Matching Thresholds
-# ---------------------------------------------------------------------------
-EMBED_MODEL = os.environ.get("EMBED_MODEL", "BAAI/bge-base-en-v1.5")
-EMBED_MODEL_FALLBACK = "all-MiniLM-L6-v2"
-MATCH_THRESHOLD_STRONG = 0.70
-MATCH_THRESHOLD_PARTIAL = 0.45
-RULE_MATCH_THRESHOLD = 0.58
-KEYWORD_BOOST = 0.08
 
 # ---------------------------------------------------------------------------
 # LLM Settings
 # ---------------------------------------------------------------------------
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
-LLM_MODEL = "claude-sonnet-4-20250514"
+LLM_MODEL = "claude-opus-4-6"
 
 # ---------------------------------------------------------------------------
 # Email (SMTP)
