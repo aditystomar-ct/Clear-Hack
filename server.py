@@ -148,17 +148,12 @@ def api_accept_flag(review_id: int, flag_id: str, body: dict):
     if is_google_doc:
         try:
             from contract_review.google_doc import (
-                add_comment_single,
                 highlight_single,
                 post_manual_comment,
             )
 
-            if custom_comment:
-                post_manual_comment(doc_id, flag, custom_comment)
-                messages.append("Custom comment posted to Google Doc")
-            else:
-                add_comment_single(doc_id, flag, team_emails)
-                messages.append("Auto comment posted to Google Doc")
+            post_manual_comment(doc_id, flag, custom_comment)
+            messages.append("Comment posted to Google Doc")
             highlight_single(doc_id, flag)
             messages.append("Clause highlighted")
         except Exception as e:
@@ -262,10 +257,16 @@ async def api_analyze(
     def event_stream():
         while True:
             try:
-                event = q.get(timeout=120)
+                # Short timeout so we can send keepalive pings while the LLM thinks
+                event = q.get(timeout=15)
             except Empty:
-                yield "data: {\"type\": \"error\", \"message\": \"Timeout waiting for pipeline\"}\n\n"
-                break
+                # No event yet — send a keepalive comment to prevent connection timeout
+                yield ": keepalive\n\n"
+                # Check if the thread is still alive (give up after 10 minutes total)
+                if not thread.is_alive():
+                    yield "data: {\"type\": \"error\", \"message\": \"Pipeline thread died unexpectedly\"}\n\n"
+                    break
+                continue
             yield f"data: {json.dumps(event)}\n\n"
             if event["type"] in ("complete", "error"):
                 break

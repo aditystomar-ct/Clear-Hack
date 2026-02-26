@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, ChevronRight, Check, X } from "lucide-react";
+import { ChevronDown, ChevronRight, Check, X, MessageSquareText, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,18 @@ import {
 import RiskBadge from "./RiskBadge";
 import { api } from "@/lib/api";
 import type { Flag, FlagAction, TeamEmails } from "@/types";
+
+/** Mirrors _build_professional_comment from google_doc.py */
+function buildCommentPreview(flag: Flag): string {
+  if (flag.classification === "compliant") {
+    return "No concerns. This clause aligns with our standard DPA.";
+  }
+  let comment = `Concern: ${flag.explanation}`;
+  if (flag.suggested_redline) {
+    comment += `\n\nProposed Amendment: ${flag.suggested_redline}`;
+  }
+  return comment;
+}
 
 interface FlagCardProps {
   flag: Flag;
@@ -32,9 +44,24 @@ export default function FlagCard({
   teamEmails,
 }: FlagCardProps) {
   const [open, setOpen] = useState(false);
-  const [comment, setComment] = useState("");
   const queryClient = useQueryClient();
   const actionStatus = action?.reviewer_action ?? "pending";
+
+  const autoComment = useMemo(() => buildCommentPreview(flag), [flag]);
+  const [comment, setComment] = useState(autoComment);
+  const [editing, setEditing] = useState(false);
+  const [edited, setEdited] = useState(false);
+
+  const handleCommentChange = (value: string) => {
+    setComment(value);
+    setEdited(true);
+  };
+
+  const resetComment = () => {
+    setComment(autoComment);
+    setEdited(false);
+    setEditing(false);
+  };
 
   const statusIcon: Record<string, string> = {
     pending: "\u23F3",
@@ -174,34 +201,73 @@ export default function FlagCard({
               Review Status: {statusIcon[actionStatus]} {actionStatus.toUpperCase()}
             </p>
 
-            {/* Comment box for Google Docs */}
-            {isGoogleDoc && (
-              <Textarea
-                placeholder="Write a custom comment... Leave empty to use the auto-generated review comment."
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                className="h-20"
-              />
+            {/* Google Doc comment preview — only show edit option when pending */}
+            {isGoogleDoc && actionStatus === "pending" && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <MessageSquareText className="h-4 w-4 text-muted-foreground" />
+                    <p className="text-sm font-semibold">
+                      Comment to post on Google Doc
+                    </p>
+                  </div>
+                  {!editing ? (
+                    <button
+                      onClick={() => setEditing(true)}
+                      className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      <Pencil className="h-3 w-3" />
+                      Edit
+                    </button>
+                  ) : edited ? (
+                    <button
+                      onClick={resetComment}
+                      className="text-xs text-muted-foreground underline hover:text-foreground"
+                    >
+                      Reset to auto-generated
+                    </button>
+                  ) : null}
+                </div>
+                {editing ? (
+                  <Textarea
+                    value={comment}
+                    onChange={(e) => handleCommentChange(e.target.value)}
+                    className="min-h-24 font-mono text-sm"
+                    autoFocus
+                  />
+                ) : (
+                  <div className="whitespace-pre-wrap rounded-md border bg-muted/50 p-3 text-sm">
+                    {comment}
+                  </div>
+                )}
+              </div>
             )}
 
-            {/* Action buttons */}
-            <div className="flex gap-3">
-              <Button
-                onClick={() => acceptMut.mutate()}
-                disabled={acceptMut.isPending || closeMut.isPending}
-              >
-                <Check className="mr-1 h-4 w-4" />
-                {acceptMut.isPending ? "Accepting..." : "Accept"}
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={() => closeMut.mutate()}
-                disabled={acceptMut.isPending || closeMut.isPending}
-              >
-                <X className="mr-1 h-4 w-4" />
-                {closeMut.isPending ? "Closing..." : "Mark as Closed"}
-              </Button>
-            </div>
+            {/* Action buttons — only show when still pending */}
+            {actionStatus === "pending" ? (
+              <div className="flex gap-3">
+                <Button
+                  onClick={() => acceptMut.mutate()}
+                  disabled={acceptMut.isPending || closeMut.isPending}
+                >
+                  <Check className="mr-1 h-4 w-4" />
+                  {acceptMut.isPending ? "Accepting..." : "Accept"}
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => closeMut.mutate()}
+                  disabled={acceptMut.isPending || closeMut.isPending}
+                >
+                  <X className="mr-1 h-4 w-4" />
+                  {closeMut.isPending ? "Closing..." : "Mark as Closed"}
+                </Button>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                {actionStatus === "accepted" ? "\u2705 Accepted" : "\u274C Closed"}
+                {action?.action_timestamp ? ` on ${new Date(action.action_timestamp).toLocaleDateString()}` : ""}
+              </p>
+            )}
           </CardContent>
         </CollapsibleContent>
       </Card>

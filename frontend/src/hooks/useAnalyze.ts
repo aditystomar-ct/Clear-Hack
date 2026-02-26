@@ -1,9 +1,11 @@
 import { useCallback, useRef, useState } from "react";
 import type { SSEEvent, SSEComplete } from "@/types";
 
-interface AnalyzeState {
+export interface AnalyzeState {
   running: boolean;
   progress: number;
+  step: number;
+  total: number;
   message: string;
   logs: string[];
   result: SSEComplete["data"] | null;
@@ -13,6 +15,8 @@ interface AnalyzeState {
 const initial: AnalyzeState = {
   running: false,
   progress: 0,
+  step: 0,
+  total: 5,
   message: "",
   logs: [],
   result: null,
@@ -69,6 +73,8 @@ export function useAnalyze() {
               setState((s) => ({
                 ...s,
                 progress: pct,
+                step: Math.floor(event.step),
+                total: event.total,
                 message: event.message,
                 logs: [...s.logs, event.message].slice(-15),
               }));

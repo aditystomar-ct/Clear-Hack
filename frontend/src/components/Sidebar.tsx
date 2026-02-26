@@ -1,10 +1,10 @@
 import { NavLink } from "react-router-dom";
-import { Upload, LayoutDashboard, History } from "lucide-react";
+import { ScanSearch, LayoutDashboard, History } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 
 const links = [
-  { to: "/", label: "Upload & Analyze", icon: Upload },
+  { to: "/", label: "Analyze", icon: ScanSearch },
   { to: "/dashboard", label: "Review Dashboard", icon: LayoutDashboard },
   { to: "/history", label: "History", icon: History },
 ];
