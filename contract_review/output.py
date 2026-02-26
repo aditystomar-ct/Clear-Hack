@@ -77,7 +77,7 @@ def build_flag_from_llm(idx: int, llm_result: dict, input_paragraphs: list[dict]
         "confidence": confidence,
         "start_index": start_index,
         "end_index": end_index,
-        "raw_text": clause_text[:200],
+        "raw_text": clause_text,
     }
 
 
