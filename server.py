@@ -45,6 +45,39 @@ from contract_review.extractors import load_team_emails
 
 app = FastAPI(title="DPA Contract Review API")
 
+BASE_URL = os.environ.get("BASE_URL", "http://localhost:8000")
+
+
+def _check_all_reviewed(review_id: int):
+    """If no pending flags remain, email all teams that review is complete."""
+    flag_actions = get_review_flags(review_id)
+    pending = sum(1 for fa in flag_actions if fa["reviewer_action"] == "pending")
+    if pending > 0:
+        return
+
+    review = get_review(review_id)
+    if not review:
+        return
+
+    metadata = json.loads(review["metadata_json"]) if review["metadata_json"] else {}
+    doc_id = metadata.get("input_source", "")
+    is_google_doc = doc_id and not doc_id.endswith(".docx") and len(doc_id) > 15
+    doc_url = f"https://docs.google.com/document/d/{doc_id}" if is_google_doc else ""
+
+    try:
+        from contract_review.notifications import send_all_reviewed_email
+
+        team_emails = load_team_emails(RULEBOOK_PATH)
+        send_all_reviewed_email(
+            contract_name=review["contract_name"],
+            review_id=review_id,
+            team_emails=team_emails,
+            doc_url=doc_url,
+            base_url=BASE_URL,
+        )
+    except Exception as e:
+        print(f"  All-reviewed email failed: {e}")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
@@ -111,6 +144,7 @@ def api_update_flag(review_id: int, flag_id: str, body: dict):
     note = body.get("note", "")
     reviewer_name = body.get("reviewer_name", "")
     update_flag_action(review_id, flag_id, action, note, reviewer_name)
+    _check_all_reviewed(review_id)
     return {"flag_id": flag_id, "status": action}
 
 
@@ -173,6 +207,9 @@ def api_accept_flag(review_id: int, flag_id: str, body: dict):
         messages.append(f"Email sent to {count} team(s)")
     except Exception as e:
         errors.append(f"Email failed: {e}")
+
+    # Check if all flags are now reviewed
+    _check_all_reviewed(review_id)
 
     return {
         "flag_id": flag_id,
@@ -247,6 +284,28 @@ async def api_analyze(
                 reviewer=reviewer,
                 progress_callback=progress_callback,
             )
+
+            # Send review-ready emails to legal & infosec teams immediately
+            try:
+                from contract_review.notifications import send_review_ready_email
+
+                team_emails = load_team_emails(RULEBOOK_PATH)
+                meta = result.get("metadata", {})
+                doc_id = meta.get("input_source", "")
+                is_gdoc = doc_id and not doc_id.endswith(".docx") and len(doc_id) > 15
+                doc_url = f"https://docs.google.com/document/d/{doc_id}" if is_gdoc else ""
+
+                send_review_ready_email(
+                    contract_name=meta.get("contract_name", doc_id),
+                    review_id=result["review_id"],
+                    flags=result["flags"],
+                    team_emails=team_emails,
+                    doc_url=doc_url,
+                    base_url=BASE_URL,
+                )
+            except Exception as e:
+                print(f"  Review-ready email failed: {e}")
+
             q.put({"type": "complete", "data": result})
         except Exception as e:
             q.put({"type": "error", "message": str(e), "traceback": traceback.format_exc()})

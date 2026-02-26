@@ -140,6 +140,143 @@ def send_email_notifications(
     return sent
 
 
+def send_review_ready_email(
+    contract_name: str,
+    review_id: int,
+    flags: list[dict],
+    team_emails: dict[str, str],
+    doc_url: str = "",
+    base_url: str = "http://localhost:8000",
+) -> int:
+    """
+    Send an email to each team right after analysis completes.
+    Tells them how many flags are pending for their team with a direct dashboard link.
+    """
+    if not SMTP_USER or not SMTP_PASSWORD:
+        print("  SMTP not configured — skipping review-ready emails.")
+        return 0
+
+    sender = EMAIL_FROM or SMTP_USER
+    sent = 0
+
+    # Count flags per team
+    team_flag_counts: dict[str, int] = {}
+    for flag in flags:
+        if flag.get("classification") == "compliant":
+            continue
+        triggered_teams = set()
+        for r in flag.get("triggered_rules", []):
+            src = r.get("source", "")
+            if src in team_emails:
+                triggered_teams.add(src)
+        if not triggered_teams:
+            # General flags count for all teams
+            for t in team_emails:
+                team_flag_counts[t] = team_flag_counts.get(t, 0) + 1
+        else:
+            for t in triggered_teams:
+                team_flag_counts[t] = team_flag_counts.get(t, 0) + 1
+
+    for team, email in team_emails.items():
+        count = team_flag_counts.get(team, 0)
+        if count == 0:
+            continue
+
+        dashboard_url = f"{base_url}/dashboard?review={review_id}&tab={team}"
+
+        lines = []
+        lines.append(f"New DPA Review — Action Required")
+        lines.append("=" * 40)
+        lines.append("")
+        lines.append(f"Contract: {contract_name}")
+        lines.append(f"Review ID: #{review_id}")
+        lines.append(f"Pending flags for {team.upper()} team: {count}")
+        if doc_url:
+            lines.append("")
+            lines.append(f"Google Doc: {doc_url}")
+        lines.append("")
+        lines.append(f"Please review and take action on your pending flags:")
+        lines.append(dashboard_url)
+        lines.append("")
+        lines.append("— ClearTax DPA Review Tool")
+
+        body = "\n".join(lines)
+
+        msg = MIMEText(body, "plain")
+        msg["Subject"] = f"Action Required: {count} DPA flags pending — {contract_name}"
+        msg["From"] = sender
+        msg["To"] = email
+
+        try:
+            with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+                server.starttls()
+                server.login(SMTP_USER, SMTP_PASSWORD)
+                server.sendmail(sender, [email], msg.as_string())
+            sent += 1
+            print(f"    Review-ready email sent to {team.upper()}: {email}")
+        except Exception as e:
+            print(f"    Review-ready email to {email} failed: {e}")
+
+    return sent
+
+
+def send_all_reviewed_email(
+    contract_name: str,
+    review_id: int,
+    team_emails: dict[str, str],
+    doc_url: str = "",
+    base_url: str = "http://localhost:8000",
+) -> int:
+    """
+    Send an email to the legal team when every flag in a review has been reviewed (0 pending).
+    """
+    if not SMTP_USER or not SMTP_PASSWORD:
+        print("  SMTP not configured — skipping all-reviewed email.")
+        return 0
+
+    legal_email = team_emails.get("legal")
+    if not legal_email:
+        print("  No legal team email configured — skipping all-reviewed email.")
+        return 0
+
+    sender = EMAIL_FROM or SMTP_USER
+
+    dashboard_url = f"{base_url}/dashboard?review={review_id}"
+
+    lines = []
+    lines.append("DPA Review Complete — All Flags Reviewed")
+    lines.append("=" * 40)
+    lines.append("")
+    lines.append(f"Contract: {contract_name}")
+    lines.append(f"Review ID: #{review_id}")
+    lines.append("")
+    lines.append("All pending flags have been reviewed. Please do a final review:")
+    lines.append(dashboard_url)
+    if doc_url:
+        lines.append("")
+        lines.append(f"Google Doc: {doc_url}")
+    lines.append("")
+    lines.append("— ClearTax DPA Review Tool")
+
+    body = "\n".join(lines)
+
+    msg = MIMEText(body, "plain")
+    msg["Subject"] = f"All flags reviewed — {contract_name}"
+    msg["From"] = sender
+    msg["To"] = legal_email
+
+    try:
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+            server.starttls()
+            server.login(SMTP_USER, SMTP_PASSWORD)
+            server.sendmail(sender, [legal_email], msg.as_string())
+        print(f"    All-reviewed email sent to LEGAL: {legal_email}")
+        return 1
+    except Exception as e:
+        print(f"    All-reviewed email to {legal_email} failed: {e}")
+        return 0
+
+
 def _truncate_clause(text: str, max_len: int = 300) -> str:
     """Shorten long clause text for email readability."""
     if len(text) <= max_len:

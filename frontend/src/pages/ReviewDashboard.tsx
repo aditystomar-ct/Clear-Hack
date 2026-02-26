@@ -185,7 +185,7 @@ export default function ReviewDashboard() {
           />
 
           {/* Tabs */}
-          <Tabs defaultValue="legal">
+          <Tabs defaultValue={searchParams.get("tab") || "legal"}>
             <TabsList>
               <TabsTrigger value="legal">Legal ({legalFiltered.length})</TabsTrigger>
               <TabsTrigger value="infosec">Infosec ({infosecFiltered.length})</TabsTrigger>
