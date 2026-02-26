@@ -16,10 +16,6 @@ from .matching import (
 )
 from .analysis import analyze_clause, analyze_clauses_batch, heuristic, _compute_confidence
 from .output import build_flag, generate_summary, print_rich_summary
-from .google_doc import (
-    clear_old_comments, clear_old_highlights,
-    add_comments_to_doc, highlight_flagged_paragraphs,
-)
 from .database import save_review
 from .notifications import send_slack_notification
 
@@ -30,7 +26,6 @@ def run_pipeline(
     analysis_mode: str = "hybrid",
     reviewer: str = "",
     progress_callback=None,
-    add_google_comments: bool = True,
     send_notification: bool = False,
     streamlit_url: str = "http://localhost:8501",
 ) -> dict:
@@ -85,13 +80,13 @@ def run_pipeline(
     _t0 = _time.time()
 
     # Step 1: Load rulebook
-    progress(1, 8, "[Step 1/7] Loading rulebook...")
+    progress(1, 7, "[Step 1/7] Loading rulebook...")
     rules = load_rulebook(RULEBOOK_PATH)
     print(f"  Loaded {len(rules)} rules ({sum(1 for r in rules if r.source == 'legal')} legal, "
           f"{sum(1 for r in rules if r.source == 'infosec')} infosec)")
 
     # Step 2: Fetch paragraphs
-    progress(2, 8, "[Step 2/7] Fetching paragraphs...")
+    progress(2, 7, "[Step 2/7] Fetching paragraphs...")
     if input_doc_id:
         input_paras = fetch_gdoc_paragraphs(input_doc_id)
     else:
@@ -100,7 +95,6 @@ def run_pipeline(
 
     pb_path = Path(playbook_source) if playbook_source else PLAYBOOK_PATH
     if playbook_source and not pb_path.exists():
-        # Treat as Google Doc URL/ID
         pb_id = extract_doc_id(playbook_source)
         pb_paras = fetch_gdoc_paragraphs(pb_id)
     else:
@@ -108,7 +102,7 @@ def run_pipeline(
     print(f"  Playbook: {len(pb_paras)} paragraphs")
 
     # Step 3: Extract clauses
-    progress(3, 8, "[Step 3/7] Extracting clauses...")
+    progress(3, 7, "[Step 3/7] Extracting clauses...")
     input_clauses = extract_clauses(input_paras, "input")
     playbook_clauses = extract_clauses(pb_paras, "playbook")
     print(f"  Input clauses:    {len(input_clauses)}")
@@ -120,7 +114,7 @@ def run_pipeline(
         raise ValueError("No clauses extracted from playbook.")
 
     # Step 4: Match clauses + rules
-    progress(4, 8, "[Step 4/7] Matching clauses...")
+    progress(4, 7, "[Step 4/7] Matching clauses...")
     matches = match_clauses(input_clauses, playbook_clauses)
     strong = sum(1 for *_, mt in matches if mt == "strong")
     partial = sum(1 for *_, mt in matches if mt == "partial")
@@ -133,13 +127,12 @@ def run_pipeline(
     print(f"  Clauses with triggered rules: {triggered}/{len(matches)}")
 
     # Step 5: Analyse clauses (batched LLM for speed)
-    progress(5, 8, "[Step 5/7] Analysing clauses...")
+    progress(5, 7, "[Step 5/7] Analysing clauses...")
     flags: list[dict] = []
     total = len(matches)
     llm_calls = 0
 
     if analysis_mode == "heuristic":
-        # Pure heuristic — no LLM, instant
         for n, ((inp, pb, sim, mt), crules) in enumerate(
             zip(matches, clause_rules), start=1,
         ):
@@ -154,7 +147,6 @@ def run_pipeline(
             flags.append(build_flag(n, inp, pb, sim, mt, crules, analysis))
 
     elif analysis_mode == "llm":
-        # All clauses go to LLM in batches of 5
         llm_items = [(inp, pb, sim, mt, crules)
                       for (inp, pb, sim, mt), crules in zip(matches, clause_rules)]
 
@@ -170,7 +162,6 @@ def run_pipeline(
             flags.append(build_flag(n, inp, pb, sim, mt, crules, analysis))
 
     else:
-        # Hybrid: heuristic first, batch LLM only for non-compliant/uncertain
         heuristic_results = {}
         llm_indices = []
 
@@ -185,7 +176,6 @@ def run_pipeline(
 
         print(f"  Heuristic pass: {len(heuristic_results)} compliant, {len(llm_indices)} need LLM")
 
-        # Batch LLM for flagged clauses
         llm_items = []
         for idx in llm_indices:
             inp, pb, sim, mt = matches[idx]
@@ -203,7 +193,6 @@ def run_pipeline(
             for i, idx in enumerate(llm_indices):
                 llm_results_map[idx] = batch_results[i]
 
-        # Combine results in order
         for n in range(len(matches)):
             inp, pb, sim, mt = matches[n]
             crules = clause_rules[n]
@@ -230,22 +219,7 @@ def run_pipeline(
         "elapsed_seconds": elapsed,
     }
 
-    if input_doc_id and add_google_comments:
-        progress(6, 7, "[Step 6/7] Updating Google Doc...")
-        issue_flags = [f for f in flags if f["classification"] != "compliant"]
-        print(f"  Clearing old comments...")
-        deleted = clear_old_comments(input_doc_id)
-        if deleted:
-            print(f"  Removed {deleted} old comments.")
-        print(f"  Clearing old highlights...")
-        clear_old_highlights(input_doc_id, flags)
-        print(f"  Adding {len(issue_flags)} comments...")
-        added = add_comments_to_doc(input_doc_id, flags)
-        print(f"  {added} comments added.")
-        highlighted = highlight_flagged_paragraphs(input_doc_id, flags)
-        print(f"  {highlighted} paragraphs highlighted.")
-    else:
-        progress(6, 7, "[Step 6/7] Skipping Google Doc (local file)...")
+    progress(6, 7, "[Step 6/7] Review flags before publishing to Google Doc...")
 
     # Step 7: Save to database
     progress(7, 7, "[Step 7/7] Saving review...")

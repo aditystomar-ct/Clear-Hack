@@ -55,6 +55,14 @@ def load_rulebook(path: Path) -> list[Rule]:
     return rules
 
 
+def load_team_emails(path: Path) -> dict[str, str]:
+    """Load team email addresses from rulebook.json 'teams' section."""
+    import json
+    data = json.loads(path.read_text())
+    teams = data.get("teams", {})
+    return {team: info.get("email", "") for team, info in teams.items() if info.get("email")}
+
+
 # ---------------------------------------------------------------------------
 # Fetch Paragraphs
 # ---------------------------------------------------------------------------

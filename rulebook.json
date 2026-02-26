@@ -1,4 +1,8 @@
 {
+  "teams": {
+    "legal": { "email": "adityasinghtmrr@gmail.com" },
+    "infosec": { "email": "adityasinghtmrr@gmail.com" }
+  },
   "legal": [
     {
       "rule_id": "legal_1",
