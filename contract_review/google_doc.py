@@ -7,71 +7,18 @@ _COMMENT_HIGHLIGHT = {"red": 1.00, "green": 0.95, "blue": 0.60}
 
 
 def _build_professional_comment(flag: dict, team_emails: dict[str, str] | None = None) -> str:
-    """Build a professional Google Doc comment as ClearTax authority with @mentions."""
+    """Build a concise Google Doc comment: Concern + Proposed Amendment only."""
     cls = flag.get("classification", "compliant")
     explanation = flag.get("explanation", "")
     redline = flag.get("suggested_redline", "")
 
-    # Determine which team emails to @mention
-    tagged_teams = set()
-    for r in flag.get("triggered_rules", []):
-        src = r.get("source", "")
-        if src:
-            tagged_teams.add(src)
-
-    mention_emails = []
-    if team_emails:
-        if tagged_teams:
-            mention_emails = [team_emails[t] for t in tagged_teams if t in team_emails]
-        else:
-            mention_emails = list(team_emails.values())
-
     if cls == "compliant":
-        comment = (
-            "ClearTax Review: This clause is consistent with our standard "
-            "Data Processing Agreement. No changes required."
-        )
-        if mention_emails:
-            mentions = " ".join(f"+{e}" for e in mention_emails)
-            comment += f"\n\n{mentions}"
-        return comment
+        return "No concerns. This clause aligns with our standard DPA."
 
-    # Opening line based on severity
-    if cls == "non_compliant":
-        opening = (
-            "ClearTax Review: We are unable to accept this clause as drafted. "
-            "It conflicts with ClearTax's standard Data Processing Agreement "
-            "and our internal compliance requirements."
-        )
-    elif cls == "deviation_major":
-        opening = (
-            "ClearTax Review: This clause deviates significantly from "
-            "ClearTax's standard Data Processing Agreement. We would require "
-            "amendments before we can agree to this provision."
-        )
-    else:  # deviation_minor
-        opening = (
-            "ClearTax Review: This clause contains minor differences from "
-            "ClearTax's standard Data Processing Agreement. We would like to "
-            "discuss the following concern."
-        )
+    comment = f"Concern: {explanation}"
 
-    # Reason
-    comment = f"{opening}\n\nConcern: {explanation}"
-
-    # Proposed amendment
     if redline:
         comment += f"\n\nProposed Amendment: {redline}"
-
-    # @mention the relevant team members
-    if mention_emails:
-        mentions = " ".join(f"+{e}" for e in mention_emails)
-        comment += f"\n\n{mentions} — Please review and respond."
-    else:
-        comment += (
-            "\n\nPlease reach out to ClearTax's Legal/Compliance team "
-            "to discuss this further."
-        )
 
     return comment
 

@@ -14,10 +14,8 @@ The Customer and the Processor are referred to individually as a “**Party**”
 
 1) The Customer acts as a Data Controller.
 
-2) The Data Controller wishes to subcontract certain services involving the processing of Personal Data (defined below), to the Processor, which is to further the Services provided by the Processor to the Data controller (“Purpose”).
-
-   
-
+2) The Data Controller wishes to subcontract certain services involving the processing of Personal Data (*defined below*), to the Processor, which is to further the Services provided by the Processor to the Data controller (“**Purpose**”).  
+     
 3) The Parties seek to implement a data processing agreement that complies with the requirements of the current legal framework in relation to Personal Data processing and with the Regulation (EU) 2016/679 of the European Parliament and of the Council of 27 April 2016 on the protection of natural persons with regard to the processing of personal data and on the free movement of such data, and repealing Directive 95/46/EC (General Data Protection Regulation).
 
 4) The Parties wish to lay down their rights and obligations.
@@ -66,11 +64,11 @@ The terms capitalised hereunder but not defined in this DPA, will have the same 
 
 1) the Data Controller shall provide the Processor access to certain Personal Data for the Purpose; and   
      
-2) the Processor shall Process such Personal Data strictly in accordance with: (a) all applicable Data Protection Laws to extent expressly and directly applicable to the Processor; (b) written instructions of the Data Controller relevant to Processing for the provision of Services under the Master Service Agreement; and (c) the terms of this DPA.
+2) the Processor shall Process such Personal Data strictly in accordance with: (a) all applicable Data Protection Laws to extent expressly and directly applicable to the Processor and (b) terms of this DPA.
 
    2. The Processor shall immediately inform the Data Controller where it is of the reasonable opinion that (i) any Processing is in violation of the Applicable Laws (ii) the Personal Data accessed by the Processor, in the context of the performance of the Agreement, is deemed excessive or unnecessary for the performance of this Agreement. 
 
-   3. In the event the Processor is of its reasonable opinion that an instruction; (i) violates Data Protection Laws, or (ii) requires access to excessive or unnecessary Personal Data; or (iii) would expose the Processor to liability; the Processor may suspend Processing till the Data Controller provides modified lawful instructions. Parties hereby acknowledge and agree that the Processor shall not be liable for any consequences in relation to the Processor explicitly following the written instructions of the Data Controller to the extent that such acts of the Processor are carried out lawfully and in accordance with other contractual provisions under this DPA. 
+   3. In the event the Processor is of its reasonable opinion that an instruction; (i) violates Data Protection Laws, or (ii) requires access to excessive or unnecessary Personal Data; or (iii) would expose the Processor to liability; the Processor may suspend Processing till the Data Controller provides modified lawful instructions. Parties hereby acknowledge and agree that the Processor shall not be liable for any consequences in relation to the Processor explicitly following the terms of this DPA to the extent that such acts of the Processor are carried out lawfully and in accordance with other contractual provisions under this DPA. 
 
    4. For the avoidance of doubt, it is clarified that the obligations of the Processor in this DPA are without prejudice to the use of information by the Processor that is derived from any Personal Data for optimisation, improvement and development of the service offerings of the Processor in the ordinary course of its business.
 
@@ -78,22 +76,18 @@ The terms capitalised hereunder but not defined in this DPA, will have the same 
 
 2. **DISCLOSURE OF AND ACCESS TO PERSONAL DATA**
 
-   1. The Processor shall hold in strict confidence any and all Personal Data disclosed to or accessed by the Processor in accordance with this DPA.
+   1. The Processor shall hold in strict confidence any and all Personal Data disclosed to or accessed by Processor in accordance with this DPA.
 
 
    2. The Processor shall limit access to Personal Data to its Personnel who have a need to know the Personal Data as a condition to Processor’s performance of Services for the Data Controller. 
 
-   3. The list of Sub-processors which the Data Controller has already authorised is in Appendix B of this Agreement. In the event of on-boarding of any new Sub-processors or changes to existing Sub-processors, the Processor shall notify of such change at least 15 days in advance along with relevant information in re the change, and the Data Controller shall have the right to object to such change.
+   3. The list of Sub-processors engaged by the processor is as set out in Appendix B of this Agreement. In the event of on-boarding of any new Sub-processors or changes to existing Sub-processors, the Processor shall notify of such change at least 15 days in advance along with relevant information in regards to the change.
+
+   4. The Controller represents that it has the legal right and/ or appropriate consents (if applicable) under the Data Protection Laws to provide the Personal Data to the Processor for the Purpose.
 
    
 
-   4. Where the Processor subcontracts any of the Processing operations to a third-party Sub-processor, the Processor shall enter into a written agreement with each such Sub-processor that imposes obligations on the Sub-processor that are identical to those imposed on the Processor under this DPA. Where the Sub-processor fails to fulfil these obligations, the Processor shall remain fully liable to the Data Controller for the performance of that Sub-processor’s obligations. It is hereby clarified that all obligations of the Processor in relation to its Personnel as set out hereunder (including under this Section 2), shall also apply *mutatis mutandis* to the involvement of any Sub-processors.
-
-   5. The Controller represents that it has the legal right and/ or appropriate consents (if applicable) under the Data Protection Laws to provide the Personal Data to the Processor for the Purpose.
-
-   
-
-   6. The Controller shall ensure that all Personal Data shared is accurate, complete and up to date. The Controller confirms that the Processor is not liable for verifying the accuracy or completeness of the Personal Data. The Processor shall not be held liable for any claims, losses or damages arising from the Processing of inaccurate, incomplete or outdated Personal Data shared by the Controller.
+   5. The Controller shall ensure that all Personal Data shared is accurate, complete and up to date. The Controller confirms that the Processor is not liable for verifying the accuracy or completeness of the Personal Data. The Processor shall not be held liable for any claims, losses or damages arising from the Processing of inaccurate, incomplete or outdated Personal Data shared by the Controller.
 
    
 
@@ -211,7 +205,7 @@ The terms capitalised hereunder but not defined in this DPA, will have the same 
 
     
 
-    3. **Third Party Claims**: In the event of any third-party claim being raised against the Processor, the Processor may, at its discretion, require the Data Controller to assume the defense of such claim, and the Data Controller shall, at its sole cost and expense promptly do the needful. Provided that the Data Controller shall not enter into any settlement, consent order, or entry into judgement, without prior written consent of the Processor. If the Data Controller fails to assume the defence within 30 days of being notified by the Processor in this regard, the Processor shall be at liberty to assume control, take appropriate actions to dispute, resist, appeal, compromise, defend, remedy or mitigate, or enter into any settlement, consent order or judgment in respect of such third-party claim at the sole cost and expense of the Controller, which must be reimbursed at actuals, and the Controller shall be bound by the same.
+    3. **Third Party Claims**: In the event of any third-party claim being raised against the Processor, the Processor may, at its discretion, require the Data Controller to assume the defense of such claim, and the Data Controller shall, at its sole cost and expense promptly do the needful. Provided that the Data Controller shall not enter into any settlement, consent order, or entry into judgement, without prior written consent of the Processor. If the Data Controller fails to assume the defence within (*insert*) days of being notified by the Processor in this regard, the Processor shall be at liberty to assume control, take appropriate actions to dispute, resist, appeal, compromise, defend, remedy or mitigate, or enter into any settlement, consent order or judgment in respect of such third-party claim at the sole cost and expense of the Controller, which must be reimbursed at actuals, and the Controller shall be bound by the same.
 
     4. The Data Controller agrees that any breach of its obligations under this DPA may cause the Processor irreparable harm which cannot be fully compensated by monetary damages. Accordingly, in addition to any other remedies the Processor may have at law or in equity, the Processor shall be entitled to seek immediate injunction and other equitable relief to prevent any further or continuing breach of obligations.
 
@@ -224,7 +218,7 @@ The terms capitalised hereunder but not defined in this DPA, will have the same 
     6. NEITHER PARTY WILL BE LIABLE FOR ANY INDIRECT, PUNITIVE, SPECIAL, INCIDENTAL, EXEMPLARY OR CONSEQUENTIAL DAMAGES IN CONNECTION WITH OR ARISING OUT OF THIS AGREEMENT, HOWEVER IT ARISES, WHETHER FOR BREACH OR IN TORT, INCLUDING BUT NOT LIMITED TO LOSS OF PROFITS, DATA OR BUSINESS INTERRUPTION, EVEN IF THAT PARTY HAS BEEN PREVIOUSLY ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-    7. NOTWITHSTANDING ANYTHING TO THE CONTRARY HEREIN, IN NO EVENT SHALL THE PROCESSOR’S TOTAL CUMULATIVE LIABILITY ARISING UNDER THIS DPA, EXCEED ONE HUNDRED PERCENT OF THE CHARGES RECEIVED BY THE PROCESSOR FROM THE DATA CONTROLLER UNDER THE MASTER AGREEMENT IN THE PRECENDING 12 MONTHS FROM THE DATE OF CLAIM.
+    7. NOTWITHSTANDING ANYTHING TO THE CONTRARY HEREIN, IN NO EVENT SHALL THE PROCESSOR’S TOTAL CUMULATIVE LIABILITY ARISING UNDER THIS DPA, EXCEED (*INSERT*).
 
 14. **MISCELLANEOUS**
 
@@ -293,20 +287,53 @@ Date: \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_				Date: \_\_\_\_\_\_
 
 **APPENDIX B**
 
-*List of Sub-processors*
+*List of Sub-processors*  
+**Sub-processor related details \-** 
 
-| Sub-Processors | Nature and Purpose of Processing | Categories of Data | Location of Processing | Security Measures |
-| ----- | :---- | :---- | :---- | :---- |
-| **Hosting and Infrastructure Service Provider** |  |  |  |  |
-| Amazon Web Services | Serves as a Cloud service provider for the products listed in \- [https://www.cleartax.com/](https://www.cleartax.com/) | Customer Data created and provided by the customer and stored in applicable cloud products. | In accordance with ClearTax’s Data Residency protocols for each region serviceable. \*For Malaysia \- Processing will be done in Singapore | [AWS Compliance Programs](https://aws.amazon.com/compliance/programs/) |
-| MongoDB Atlas | Serves as Database Storage for applicable products listed in \- [https://www.cleartax.com/](https://www.cleartax.com/) | Customer Data created and provided by the customer and stored in applicable cloud products. | In accordance with ClearTax’s Data Residency protocols for each region serviceable. | [MongoDB trust center](https://www.mongodb.com/products/platform/trust) |
-| Oracle Systems Limited | Cloud Service Provider for products listed in \- [https://www.cleartax.com/sa](https://www.cleartax.com/sa) | Customer Data created and provided by the customer and stored in applicable cloud products. | Kingdom of Saudi Arabia | [Oracle Compliance](https://www.oracle.com/in/corporate/cloud-compliance/) |
-| S3NS Cloud | Cloud Service Provider for products listed in \- [https://www.cleartax.com/fr/en](https://www.cleartax.com/fr/en) | Customer Data created and provided by the customer and stored in applicable cloud products. | France | [S3NS Compliance with SecNum](https://cyber.gouv.fr/secnumcloud-pour-les-fournisseurs-de-services-cloud) |
-| **CRM and Support Service Provider** |  |  |  |  |
-| Salesforce | Customer service and technical support for products listed in \- [https://www.cleartax.com/](https://www.cleartax.com/) | If you engage in support within the Salesforce portal, Salesforce receives basic info related to your case and subscription (e.g., name, email, phone number, company, country etc) If you include other personal data in your support tickets (e.g., Query related to financial data involved etc.), this information would also be processed by Salesforce. | India | [Salesforce Trust](https://compliance.salesforce.com/en) |
-| **Communication Provider** |  |  |  |  |
-| Mailmodo | Communications technology provider for products listed in \- [https://www.cleartax.com/](https://www.cleartax.com/) | Customer Data created by customer, data contained in product notice communications and user-initiated support tickets, associated comments and SMS/MMS messages. | USA | [Mailmodo Security Compliance](https://www.mailmodo.com/security/) |
-| PubNub, Inc. | Real-time messaging and event delivery platform to support in-product notifications, system status updates, and real-time communication features within the ClearTax applicationCommunications technology provider for products listed in \- [https://www.cleartax.com/](https://www.cleartax.com/) | Application event data, Limited personal data contained within real-time messages, if configured, Technical identifiers (e.g., channel IDs, timestamps) Automated messages and notifications via email on application assistance. Automated messages on OTP, Inbox etc. | Global, including European UnionIn accordance with ClearTax’s Data Residency protocols for each region serviceable. | [*PubNub Security complianceTwillio Trust Center*](https://www.pubnub.com/trust/compliance/) |
+| Sub-Processor 1   |  |
+| :---- | :---- |
+| Full legal name of sub-processor  | Amazon Web Services EMEA SARL (AWS) |
+| Address / country  | 38 Avenue John F. Kennedy, L-1855 Luxembourg |
+| Subject matter and description of processing including clear delimitation of responsibilities  | Cloud Service Provider (CSP) – provides secure hosting infrastructure (IaaS) for application servers, databases, and storage. ClearTax deploys its e-Invoicing SaaS platform within AWS’s EU (Paris) environment. |
+| Nature of processing (hosting, access only, etc.) | Hosting as a CSP, location: AWS EU (Paris) |
+| Duration of processing  | As long as the contractual engagement with customers remains active or as required under applicable regulatory retention laws. |
+| Contact details of sub-processor | AWS Data Protection Team, Amazon Web Services EMEA SARL, 38 Avenue John F. Kennedy, L-1855 Luxembourg privacy@amazon.com |
+
+| Sub-Processor 2   |  |
+| :---- | :---- |
+| Full legal name of sub-processor  | MongoDB Atlas (operated by MongoDB Inc.) |
+| Address / country  | 1633 Broadway, 38th Floor, New York NY 10019, USA |
+| Subject matter and description of processing including clear delimitation of responsibilities  | Managed database as a service for storing e-Invoicing application data within EU datacentres. ClearTax uses MongoDB Atlas for data persistence and query operations. |
+| Nature of processing (hosting, access only, etc.) | Database hosting and management service, location: EU |
+| Duration of processing  | For the duration of contractual engagement or as necessary for statutory retention periods instructed by the Controller. |
+| Contact details of sub-processor | MongoDB Inc., Attn: Data Protection Officer, dpo@mongodb.com |
+
+| Sub-Processor 3   |  |
+| :---- | :---- |
+| Full legal name of sub-processor  | Mailmodo Technologies Private Limited |
+| Address / country  | 91 Springboard, Sector 44, Gurgaon 122003, India |
+| Subject matter and description of processing including clear delimitation of responsibilities  | Transactional email delivery service used for sending automated system notifications (e.g., invoice status alerts, user activation emails) to authorised customer contacts. |
+| Nature of processing (hosting, access only, etc.) | **Email sending service** – processes business email IDs only; no financial or invoice content is retained after delivery. Location of processing: USA, Azure |
+| Duration of processing  | Retained for the duration of the contract and temporary transaction logs (max 30 days). |
+| Contact details of sub-processor | Mailmodo Technologies Pvt Ltd, Data Protection Officer – dpo@mailmodo.com |
+
+| Sub-Processor 4   |  |
+| :---- | :---- |
+| Full legal name of sub-processor  | Salesforce.com India Private Limited |
+| Address / country  | Torrey Pines, 3rd Floor, Embassy Golf Links Software Business Park, Bengaluru Urban, Karnataka 560071 India |
+| Subject matter and description of processing including clear delimitation of responsibilities  | ClearTax uses Salesforce.com (SFDC) as a Customer Relationship Management (CRM) platform to manage customer accounts, contacts, and engagement insights. Salesforce processes limited business contact and product usage metadata of ClearTax’s enterprise customers to enable internal account management and customer success activities. |
+| Nature of processing (hosting, access only, etc.) | Synchronization, storage, and access of customer user-level information in Salesforce to provide visibility for customer success, renewal, and license management activities. |
+| Duration of processing  | Retained for the duration of the contract and temporary transaction logs (max 30 days). |
+| Contact details of sub-processor | Salesforce Technologies Pvt Ltd, Data Protection Officer – privacy@salesforce.com |
+
+| Sub-Processor 5   |  |
+| :---- | :---- |
+| Full legal name of sub-processor  | PubNub |
+| Address / country  |  |
+| Subject matter and description of processing including clear delimitation of responsibilities  |       |
+| Nature of processing (hosting, access only, etc.) |  |
+| Duration of processing  |  |
+| Contact details of sub-processor |  |
 
 **APPENDIX C**
 
@@ -370,31 +397,45 @@ Role (controller/processor): …
 
 **TECHNICAL AND ORGANISATIONAL MEASURES INCLUDING TECHNICAL AND ORGANISATIONAL MEASURES TO ENSURE THE SECURITY OF THE DATA**
 
-***Information security standards :***
+*Description of the technical and organisational measures implemented by the data importer(s) (including any relevant certifications) to ensure an appropriate level of security, taking into account the nature, scope, context and purpose of the processing, and the risks for the rights and freedoms of natural persons.*
 
-***1\. Governance & Certifications***
+*\[Examples of possible measures:*
 
-*As a SaaS-based fintech organization, we maintain a robust information security program aligned with internationally recognized standards, including ISO/IEC 27001 and SOC 2\. Our ISO 27001 certification demonstrates a formally established and continuously improving Information Security Management System (ISMS), while our SOC 2 Type II attestation validates the design and operating effectiveness of our controls over an audited period.*
+*Measures of pseudonymisation and encryption of personal data*
 
-***2\. Risk Management Framework***
+*Measures for ensuring ongoing confidentiality, integrity, availability and resilience of processing systems and services*
 
-*We apply a structured, risk-based approach to information security. Risks are systematically identified, assessed, and treated through documented methodologies, asset inventories, and risk treatment plans. Security governance includes defined roles and responsibilities, periodic internal audits, and executive oversight to ensure continuous improvement and regulatory alignment.*
+*Measures for ensuring the ability to restore the availability and access to personal data in a timely manner in the event of a physical or technical incident*
 
-***3\. Access Control & Identity Security***
+*Processes for regularly testing, assessing and evaluating the effectiveness of technical and organisational measures in order to ensure the security of the processing*
 
-*Access to systems and data is governed by role-based access control (RBAC) and the principle of least privilege. Multi-factor authentication (MFA), periodic access reviews, and controlled onboarding/offboarding processes are enforced to prevent unauthorized access. Privileged and administrative activities are closely monitored and logged.*
+*Measures for user identification and authorisation*
 
-***4\. Data Protection & Encryption***
+*Measures for the protection of data during transmission*
 
-*We protect sensitive financial and personal data using strong encryption standards both in transit and at rest. Data is classified and handled according to formal policies, and customer environments are logically segregated. Secure key management and strict data handling controls are embedded across our systems.*
+*Measures for the protection of data during storage*
 
-***5\. Secure Development & Infrastructure Security***
+*Measures for ensuring physical security of locations at which personal data are processed*
 
-*Our secure software development lifecycle (SDLC) incorporates code reviews, vulnerability scanning, penetration testing, and formal change management. Infrastructure is protected through network segmentation, continuous monitoring, patch management, and hardened configurations to ensure system integrity and resilience.*
+*Measures for ensuring events logging*
 
-***6\. Monitoring, Incident Response & Resilience***
+*Measures for ensuring system configuration, including default configuration*
 
-*We maintain centralized logging and real-time monitoring to detect and respond to security events. A documented incident response plan defines procedures for investigation, containment, notification, and remediation. Business continuity and disaster recovery plans are regularly tested to ensure availability and operational resilience.*
+*Measures for internal IT and IT security governance and management*
+
+*Measures for certification/assurance of processes and products*
+
+*Measures for ensuring data minimisation*
+
+*Measures for ensuring data quality*
+
+*Measures for ensuring limited data retention*
+
+*Measures for ensuring accountability*
+
+*Measures for allowing data portability and ensuring erasure\]*
+
+*For transfers to (sub-) processors, also* *describe the specific technical and organisational measures to be taken by the (sub-) processor to be able to provide assistance to the controller and, for transfers from a processor to a sub-processor, to the data exporter.*
 
 **APPENDIX E**
 
