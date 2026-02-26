@@ -112,34 +112,29 @@ if page == "Upload & Analyze":
 
         progress_bar = st.progress(0, text="Starting analysis...")
         status_text = st.empty()
+        log_area = st.empty()
+        log_lines = []
 
         def progress_callback(step, total, msg):
-            progress_bar.progress(step / total, text=msg)
-            status_text.text(msg)
-
-        # Capture stdout for processing log
-        import io
-        import sys
-
-        old_stdout = sys.stdout
-        sys.stdout = buffer = io.StringIO()
+            pct = min(step / total, 1.0) if total > 0 else 0
+            progress_bar.progress(pct, text=msg)
+            status_text.markdown(f"**{msg}**")
+            log_lines.append(msg)
+            log_area.code("\n".join(log_lines[-15:]), language="text")
 
         try:
             from contract_review.pipeline import run_pipeline
             result = run_pipeline(
                 input_source=input_source,
-                playbook_source=custom_playbook,
-                analysis_mode=analysis_mode,
-                reviewer=reviewer_name,
+                analysis_mode="hybrid",
                 progress_callback=progress_callback,
-                add_google_comments=(input_method == "Google Doc URL"),
+                add_google_comments=True,
             )
 
-            sys.stdout = old_stdout
-            output_log = buffer.getvalue()
-
             progress_bar.progress(1.0, text="Analysis complete!")
-            st.success(f"Analysis complete! Review ID: #{result['review_id']}")
+            status_text.empty()
+            log_area.empty()
+            st.success(f"Analysis complete! Review ID: #{result['review_id']} ({result['metadata'].get('elapsed_seconds', '?')}s)")
             st.session_state["current_review_id"] = result["review_id"]
 
             # Summary metrics
@@ -149,16 +144,14 @@ if page == "Upload & Analyze":
             c2.metric("High Risk", summary["high_risk_count"])
             c3.metric("Non-Compliant", summary["non_compliant_count"])
             c4.metric("Compliant", summary.get("classification_breakdown", {}).get("compliant", 0))
-            c5.metric("LLM Calls", result["metadata"].get("llm_calls", 0))
-
-            with st.expander("Processing Log", expanded=False):
-                st.code(output_log, language="text")
+            c5.metric("LLM Batches", f"{(result['metadata'].get('llm_calls', 0) + 4) // 5}")
 
             st.info("Go to **Review Dashboard** in the sidebar to review flags in detail.")
 
         except Exception as e:
-            sys.stdout = old_stdout
             progress_bar.empty()
+            status_text.empty()
+            log_area.empty()
             st.error(f"Analysis failed: {e}")
             import traceback
             st.code(traceback.format_exc())

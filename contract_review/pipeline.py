@@ -13,9 +13,9 @@ from .extractors import (
     load_rulebook, extract_clauses,
 )
 from .matching import (
-    match_clauses, match_rules, apply_rule_specificity, get_active_model_name,
+    match_clauses, match_all_rules, apply_rule_specificity, get_active_model_name,
 )
-from .analysis import analyze_clause, heuristic, _compute_confidence
+from .analysis import analyze_clause, analyze_clauses_batch, heuristic, _compute_confidence
 from .output import build_flag, generate_summary, generate_html_report, print_rich_summary
 from .google_doc import (
     clear_old_comments, clear_old_highlights, clear_old_strikethroughs,
@@ -83,14 +83,17 @@ def run_pipeline(
     print(f"Input: {input_doc_id or input_path}")
     print()
 
+    import time as _time
+    _t0 = _time.time()
+
     # Step 1: Load rulebook
-    progress(1, 6, "[Step 1/6] Loading rulebook from xlsx...")
+    progress(1, 8, "[Step 1/8] Loading rulebook...")
     rules = load_rulebook(RULEBOOK_PATH)
     print(f"  Loaded {len(rules)} rules ({sum(1 for r in rules if r.source == 'legal')} legal, "
           f"{sum(1 for r in rules if r.source == 'infosec')} infosec)")
 
     # Step 2: Fetch paragraphs
-    progress(2, 6, "[Step 2/6] Fetching paragraphs...")
+    progress(2, 8, "[Step 2/8] Fetching paragraphs...")
     if input_doc_id:
         input_paras = fetch_gdoc_paragraphs(input_doc_id)
     else:
@@ -107,7 +110,7 @@ def run_pipeline(
     print(f"  Playbook: {len(pb_paras)} paragraphs")
 
     # Step 3: Extract clauses
-    progress(3, 6, "[Step 3/6] Extracting clauses...")
+    progress(3, 8, "[Step 3/8] Extracting clauses...")
     input_clauses = extract_clauses(input_paras, "input")
     playbook_clauses = extract_clauses(pb_paras, "playbook")
     print(f"  Input clauses:    {len(input_clauses)}")
@@ -119,30 +122,29 @@ def run_pipeline(
         raise ValueError("No clauses extracted from playbook.")
 
     # Step 4: Match clauses + rules
-    progress(4, 6, "[Step 4/6] Matching clauses to playbook + rules...")
+    progress(4, 8, "[Step 4/8] Matching clauses...")
     matches = match_clauses(input_clauses, playbook_clauses)
     strong = sum(1 for *_, mt in matches if mt == "strong")
     partial = sum(1 for *_, mt in matches if mt == "partial")
     new = sum(1 for *_, mt in matches if mt == "new_clause")
     print(f"  Strong: {strong}  |  Partial: {partial}  |  New: {new}")
 
-    clause_rules_raw = [match_rules(inp, rules) for inp, _, _, _ in matches]
+    clause_rules_raw = match_all_rules([inp for inp, _, _, _ in matches], rules)
     clause_rules = apply_rule_specificity(clause_rules_raw)
     triggered = sum(1 for cr in clause_rules if cr)
     print(f"  Clauses with triggered rules: {triggered}/{len(matches)}")
 
-    # Step 5: Analyse each clause
-    progress(5, 6, "[Step 5/6] Analysing clauses...")
+    # Step 5: Analyse clauses (batched LLM for speed)
+    progress(5, 8, "[Step 5/8] Analysing clauses...")
     flags: list[dict] = []
     total = len(matches)
     llm_calls = 0
 
-    for n, ((inp, pb, sim, mt), crules) in enumerate(
-        zip(matches, clause_rules), start=1,
-    ):
-        label = inp.section or inp.id
-
-        if analysis_mode == "heuristic":
+    if analysis_mode == "heuristic":
+        # Pure heuristic — no LLM, instant
+        for n, ((inp, pb, sim, mt), crules) in enumerate(
+            zip(matches, clause_rules), start=1,
+        ):
             if mt == "strong" and not crules:
                 analysis = dict(
                     classification="compliant", risk_level="Low",
@@ -150,35 +152,76 @@ def run_pipeline(
                     suggested_redline="", confidence=_compute_confidence(sim, crules),
                 )
             else:
-                print(f"  [{n}/{total}] {label}...")
                 analysis = heuristic(inp, pb, sim, mt, crules)
+            flags.append(build_flag(n, inp, pb, sim, mt, crules, analysis))
 
-        elif analysis_mode == "llm":
-            print(f"  [{n}/{total}] {label} (LLM)...")
-            analysis = analyze_clause(inp, pb, sim, mt, crules, True)
-            llm_calls += 1
+    elif analysis_mode == "llm":
+        # All clauses go to LLM in batches of 5
+        llm_items = [(inp, pb, sim, mt, crules)
+                      for (inp, pb, sim, mt), crules in zip(matches, clause_rules)]
 
-        else:
-            # Hybrid: heuristic first, LLM only for non-compliant/uncertain
-            heuristic_result = heuristic(inp, pb, sim, mt, crules)
-            if heuristic_result["classification"] == "compliant" and not crules:
-                analysis = heuristic_result
+        def on_llm_progress(done, batch_total, msg):
+            frac = 5 / 8 + (done / batch_total) * (1 / 8) if batch_total > 0 else 5 / 8
+            progress(frac * 8, 8, f"[Step 5/8] {msg}")
+
+        batch_results = analyze_clauses_batch(llm_items, on_progress=on_llm_progress)
+        llm_calls = total
+        for n, (((inp, pb, sim, mt), crules), analysis) in enumerate(
+            zip(zip(matches, clause_rules), batch_results), start=1,
+        ):
+            flags.append(build_flag(n, inp, pb, sim, mt, crules, analysis))
+
+    else:
+        # Hybrid: heuristic first, batch LLM only for non-compliant/uncertain
+        heuristic_results = {}
+        llm_indices = []
+
+        for n, ((inp, pb, sim, mt), crules) in enumerate(
+            zip(matches, clause_rules),
+        ):
+            h = heuristic(inp, pb, sim, mt, crules)
+            if h["classification"] == "compliant" and not crules:
+                heuristic_results[n] = h
             else:
-                print(f"  [{n}/{total}] {label} (LLM)...")
-                analysis = analyze_clause(inp, pb, sim, mt, crules, True)
-                llm_calls += 1
+                llm_indices.append(n)
 
-        flags.append(build_flag(n, inp, pb, sim, mt, crules, analysis))
+        print(f"  Heuristic pass: {len(heuristic_results)} compliant, {len(llm_indices)} need LLM")
+
+        # Batch LLM for flagged clauses
+        llm_items = []
+        for idx in llm_indices:
+            inp, pb, sim, mt = matches[idx]
+            crules = clause_rules[idx]
+            llm_items.append((inp, pb, sim, mt, crules))
+
+        llm_results_map = {}
+        if llm_items:
+            def on_llm_progress(done, batch_total, msg):
+                frac = 5 / 8 + (done / batch_total) * (1 / 8) if batch_total > 0 else 5 / 8
+                progress(frac * 8, 8, f"[Step 5/8] {msg}")
+
+            batch_results = analyze_clauses_batch(llm_items, on_progress=on_llm_progress)
+            llm_calls = len(llm_items)
+            for i, idx in enumerate(llm_indices):
+                llm_results_map[idx] = batch_results[i]
+
+        # Combine results in order
+        for n in range(len(matches)):
+            inp, pb, sim, mt = matches[n]
+            crules = clause_rules[n]
+            analysis = heuristic_results.get(n) or llm_results_map.get(n)
+            flags.append(build_flag(n + 1, inp, pb, sim, mt, crules, analysis))
 
     if analysis_mode != "heuristic":
-        print(f"  LLM calls made: {llm_calls}/{total} clauses")
+        print(f"  LLM batches: {(llm_calls + 4) // 5} calls for {llm_calls} clauses (5 per batch)")
 
-    # Step 6: Output
-    progress(6, 6, "[Step 6/6] Generating output...")
+    # Step 6: Generate output files
+    progress(6, 8, "[Step 6/8] Generating reports...")
     OUTPUT_DIR.mkdir(exist_ok=True)
     summary = generate_summary(flags)
 
     embedding_model = get_active_model_name()
+    elapsed = round(_time.time() - _t0, 1)
     output_metadata = {
         "tool": "DPA Contract Review Tool",
         "input_source": input_doc_id or str(input_path.name),
@@ -188,6 +231,7 @@ def run_pipeline(
         "analysis_mode": analysis_mode,
         "embedding_model": embedding_model,
         "llm_calls": llm_calls,
+        "elapsed_seconds": elapsed,
     }
 
     output = {"metadata": output_metadata, "summary": summary, "flags": flags}
@@ -195,31 +239,32 @@ def run_pipeline(
         json.dump(output, f, indent=2, ensure_ascii=False)
     print(f"  flags.json written to: {OUTPUT_PATH}")
 
-    # Generate HTML report
     report_path = generate_html_report(flags, summary, output_metadata)
     print(f"  HTML report written to: {report_path}")
 
-    # Google Doc comments + highlights + strikethrough
+    # Step 7: Google Doc comments + highlights
     if input_doc_id and add_google_comments:
+        progress(7, 8, "[Step 7/8] Updating Google Doc...")
         issue_flags = [f for f in flags if f["classification"] != "compliant"]
-        print(f"\n  Clearing old review comments...")
+        print(f"  Clearing old comments...")
         deleted = clear_old_comments(input_doc_id)
         if deleted:
             print(f"  Removed {deleted} old comments.")
         print(f"  Clearing old highlights and strikethroughs...")
         clear_old_highlights(input_doc_id, flags)
         clear_old_strikethroughs(input_doc_id, flags)
-        print(f"  Adding comments to {len(issue_flags)} flagged paragraphs...")
+        print(f"  Adding {len(issue_flags)} comments...")
         added = add_comments_to_doc(input_doc_id, flags)
-        print(f"  {added} comments added to Google Doc.")
-        print(f"  Highlighting flagged paragraphs...")
+        print(f"  {added} comments added.")
         highlighted = highlight_flagged_paragraphs(input_doc_id, flags)
         print(f"  {highlighted} paragraphs highlighted.")
-        print(f"  Applying strikethrough to flagged paragraphs...")
         struck = strikethrough_flagged_paragraphs(input_doc_id, flags)
         print(f"  {struck} paragraphs struck through.")
+    else:
+        progress(7, 8, "[Step 7/8] Skipping Google Doc (local file)...")
 
-    # Save to database
+    # Step 8: Save to database
+    progress(8, 8, "[Step 8/8] Saving review...")
     contract_name = input_doc_id or input_path.name
     review_id = save_review(
         contract_name=contract_name,
@@ -230,11 +275,11 @@ def run_pipeline(
         reviewer=reviewer,
     )
 
-    # Slack notification
     if send_notification:
         send_slack_notification(contract_name, summary, review_id, streamlit_url)
 
-    # Print rich summary
+    elapsed_final = round(_time.time() - _t0, 1)
+    print(f"\n  Done in {elapsed_final}s ({llm_calls} clauses via LLM in {(llm_calls + 4) // 5} batches)")
     print_rich_summary(summary, flags, output_metadata)
 
     return {

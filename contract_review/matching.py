@@ -67,27 +67,33 @@ def match_clauses(
     return results
 
 
-def match_rules(clause: Clause, rules: list[Rule]) -> list[tuple[Rule, float]]:
-    """Find applicable rules for a clause (semantic similarity + keyword boost)."""
-    clause_emb = embed_texts([clause.text])
+def match_all_rules(
+    clauses: list[Clause], rules: list[Rule],
+) -> list[list[tuple[Rule, float]]]:
+    """Match all clauses against all rules in a single batched pass."""
+    print("  Computing rule embeddings (batched)...")
+    clause_emb = embed_texts([c.text for c in clauses])
     rule_texts = [f"{r.clause}: {r.subclause}" for r in rules]
     rule_emb = embed_texts(rule_texts)
-    sims = cosine_similarity(clause_emb, rule_emb)[0]
+    sims = cosine_similarity(clause_emb, rule_emb)
 
-    clause_low = clause.text.lower()
-    matched: list[tuple[Rule, float]] = []
-    for j, rule in enumerate(rules):
-        score = float(sims[j])
-        rule_keywords = set(re.findall(r"[a-z]{4,}", rule.clause.lower()))
-        clause_words = set(re.findall(r"[a-z]{4,}", clause_low))
-        overlap = rule_keywords & clause_words
-        if len(overlap) >= 2:
-            score = min(score + KEYWORD_BOOST, 1.0)
-        if score >= RULE_MATCH_THRESHOLD:
-            matched.append((rule, score))
+    # Pre-compute rule keywords once
+    rule_kw_cache = [set(re.findall(r"[a-z]{4,}", r.clause.lower())) for r in rules]
 
-    matched.sort(key=lambda x: -x[1])
-    return matched[:5]
+    all_matched: list[list[tuple[Rule, float]]] = []
+    for i, clause in enumerate(clauses):
+        clause_words = set(re.findall(r"[a-z]{4,}", clause.text.lower()))
+        matched: list[tuple[Rule, float]] = []
+        for j, rule in enumerate(rules):
+            score = float(sims[i][j])
+            overlap = rule_kw_cache[j] & clause_words
+            if len(overlap) >= 2:
+                score = min(score + KEYWORD_BOOST, 1.0)
+            if score >= RULE_MATCH_THRESHOLD:
+                matched.append((rule, score))
+        matched.sort(key=lambda x: -x[1])
+        all_matched.append(matched[:5])
+    return all_matched
 
 
 def apply_rule_specificity(

@@ -54,9 +54,19 @@ Respond ONLY with this JSON (no markdown fences):
 {{"classification": "...", "risk_level": "...", "explanation": "...", "suggested_redline": "...", "confidence": 0.0}}"""
 
 
+_llm_client = None
+
+
+def _get_llm_client():
+    global _llm_client
+    if _llm_client is None:
+        import anthropic
+        _llm_client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+    return _llm_client
+
+
 def _call_llm(prompt: str) -> dict:
-    import anthropic
-    client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+    client = _get_llm_client()
     resp = client.messages.create(
         model=LLM_MODEL, max_tokens=1024,
         messages=[{"role": "user", "content": prompt}],
@@ -119,3 +129,85 @@ def analyze_clause(inp, pb, sim, mt, rules, use_llm) -> dict:
         except Exception as e:
             print(f"    LLM error: {e}. Using heuristic.")
     return heuristic(inp, pb, sim, mt, rules)
+
+
+def _build_batch_prompt(items: list[tuple]) -> str:
+    """Build a single prompt for analyzing multiple clauses at once."""
+    clauses_block = ""
+    for i, (inp, pb, sim, mt, rules) in enumerate(items, start=1):
+        pb_block = (
+            f'Matched playbook: "{pb.text}" (sim={sim:.2f}, {mt})'
+            if mt != "new_clause" else
+            f'No playbook match (sim={sim:.2f}). New obligation not in ClearTax standard.'
+        )
+        rules_block = ""
+        if rules:
+            rules_block = " | Rules: " + "; ".join(
+                f"[{r.rule_id}] {r.clause} (Risk: {r.risk}, Required: {r.response})"
+                for r, _ in rules
+            )
+        clauses_block += f'\n--- CLAUSE {i} ---\n"{inp.text}"\n{pb_block}{rules_block}\n'
+
+    return f"""You are a legal analyst reviewing a DPA for ClearTax (Defmacro Software Pvt Ltd), the data processor.
+The incoming DPA is from a customer (the data controller).
+
+Analyze each clause below for compliance with ClearTax's playbook and internal rules.
+
+{clauses_block}
+
+For EACH clause, classify as: "compliant" / "deviation_minor" / "deviation_major" / "non_compliant"
+Risk: "High" / "Medium" / "Low"
+Confidence: float 0.0-1.0
+
+Respond ONLY with a JSON array (no markdown fences). One object per clause, in order:
+[{{"clause_index": 1, "classification": "...", "risk_level": "...", "explanation": "...", "suggested_redline": "...", "confidence": 0.0}}, ...]"""
+
+
+def analyze_clauses_batch(
+    items: list[tuple],
+    on_progress=None,
+) -> list[dict]:
+    """
+    Analyze multiple clauses in batches of BATCH_SIZE via a single LLM call each.
+    Falls back to heuristic per-clause on LLM error.
+    """
+    BATCH_SIZE = 5
+    results: list[dict] = []
+    total = len(items)
+
+    for batch_start in range(0, total, BATCH_SIZE):
+        batch = items[batch_start:batch_start + BATCH_SIZE]
+        batch_end = min(batch_start + BATCH_SIZE, total)
+
+        if on_progress:
+            on_progress(batch_start, total, f"Analyzing clauses {batch_start+1}-{batch_end} of {total}...")
+
+        try:
+            client = _get_llm_client()
+            prompt = _build_batch_prompt(batch)
+            resp = client.messages.create(
+                model=LLM_MODEL, max_tokens=4096,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            text = resp.content[0].text.strip()
+            if text.startswith("```"):
+                text = text.split("\n", 1)[1].rsplit("```", 1)[0].strip()
+            parsed = json.loads(text)
+
+            if isinstance(parsed, list) and len(parsed) == len(batch):
+                for item in parsed:
+                    item.setdefault("factual_issues", False)
+                    item.setdefault("factual_notes", "")
+                results.extend(parsed)
+            else:
+                raise ValueError(f"Expected {len(batch)} results, got {len(parsed) if isinstance(parsed, list) else 'non-list'}")
+
+        except Exception as e:
+            print(f"    Batch LLM error: {e}. Falling back to heuristic for this batch.")
+            for inp, pb, sim, mt, rules in batch:
+                results.append(heuristic(inp, pb, sim, mt, rules))
+
+    if on_progress:
+        on_progress(total, total, f"Analysis complete ({total} clauses)")
+
+    return results
