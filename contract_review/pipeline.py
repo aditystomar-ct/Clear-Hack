@@ -18,8 +18,9 @@ from .matching import (
 from .analysis import analyze_clause, heuristic, _compute_confidence
 from .output import build_flag, generate_summary, generate_html_report, print_rich_summary
 from .google_doc import (
-    clear_old_comments, clear_old_highlights,
+    clear_old_comments, clear_old_highlights, clear_old_strikethroughs,
     add_comments_to_doc, highlight_flagged_paragraphs,
+    strikethrough_flagged_paragraphs,
 )
 from .database import save_review
 from .notifications import send_slack_notification
@@ -198,21 +199,25 @@ def run_pipeline(
     report_path = generate_html_report(flags, summary, output_metadata)
     print(f"  HTML report written to: {report_path}")
 
-    # Google Doc comments + highlights
+    # Google Doc comments + highlights + strikethrough
     if input_doc_id and add_google_comments:
         issue_flags = [f for f in flags if f["classification"] != "compliant"]
         print(f"\n  Clearing old review comments...")
         deleted = clear_old_comments(input_doc_id)
         if deleted:
             print(f"  Removed {deleted} old comments.")
-        print(f"  Clearing old highlights...")
+        print(f"  Clearing old highlights and strikethroughs...")
         clear_old_highlights(input_doc_id, flags)
+        clear_old_strikethroughs(input_doc_id, flags)
         print(f"  Adding comments to {len(issue_flags)} flagged paragraphs...")
         added = add_comments_to_doc(input_doc_id, flags)
         print(f"  {added} comments added to Google Doc.")
         print(f"  Highlighting flagged paragraphs...")
         highlighted = highlight_flagged_paragraphs(input_doc_id, flags)
         print(f"  {highlighted} paragraphs highlighted.")
+        print(f"  Applying strikethrough to flagged paragraphs...")
+        struck = strikethrough_flagged_paragraphs(input_doc_id, flags)
+        print(f"  {struck} paragraphs struck through.")
 
     # Save to database
     contract_name = input_doc_id or input_path.name

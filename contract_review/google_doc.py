@@ -1,9 +1,10 @@
-"""Google Docs comment and highlight operations."""
+"""Google Docs comment, highlight, and strikethrough operations."""
 
 import json as _json
 from .auth import get_google_creds
 
 _COMMENT_HIGHLIGHT = {"red": 1.00, "green": 0.95, "blue": 0.60}
+_STRIKETHROUGH_COLOR = {"red": 0.80, "green": 0.80, "blue": 0.80}  # Grey out struck text
 
 
 def clear_old_comments(doc_id: str) -> int:
@@ -66,8 +67,11 @@ def add_comments_to_doc(doc_id: str, flags: list[dict]) -> int:
     creds = get_google_creds()
     drive = build("drive", "v3", credentials=creds, cache_discovery=False)
 
-    print("    Fetching doc text for exact quoting...")
-    full_text = _extract_doc_plain_text(doc_id)
+    # Get the document length for anchor ml field
+    docs = build("docs", "v1", credentials=creds, cache_discovery=False)
+    doc = docs.documents().get(documentId=doc_id).execute()
+    body_content = doc.get("body", {}).get("content", [])
+    total_length = body_content[-1].get("endIndex", 0) if body_content else 0
 
     added = 0
     for flag in flags:
@@ -89,18 +93,17 @@ def add_comments_to_doc(doc_id: str, flags: list[dict]) -> int:
 
         start = flag.get("start_index", 0)
         end = flag.get("end_index", 0)
-        exact_text = full_text[start:end].strip()
-        quoted = exact_text[:300] if exact_text else flag["input_text"][:300]
 
+        # Use explicit Kix anchor with Docs API character offsets
+        # (quotedFileContent alone does not anchor for service accounts)
         anchor = _json.dumps({
             "r": "head",
-            "a": [{"txt": {"o": start, "l": end - start, "ml": len(full_text)}}],
+            "a": [{"txt": {"o": start, "l": end - start, "ml": total_length}}],
         })
 
         body = {
             "content": comment_text,
             "anchor": anchor,
-            "quotedFileContent": {"mimeType": "text/plain", "value": quoted},
         }
 
         try:
@@ -161,4 +164,76 @@ def highlight_flagged_paragraphs(doc_id: str, flags: list[dict]) -> int:
     for chunk_start in range(0, len(requests), BATCH_SIZE):
         chunk = requests[chunk_start: chunk_start + BATCH_SIZE]
         docs.documents().batchUpdate(documentId=doc_id, body={"requests": chunk}).execute()
+    return len(requests)
+
+
+def clear_old_strikethroughs(doc_id: str, flags: list[dict]) -> None:
+    """Remove strikethrough formatting from all flagged ranges (undo previous runs)."""
+    from googleapiclient.discovery import build
+    creds = get_google_creds()
+    docs = build("docs", "v1", credentials=creds, cache_discovery=False)
+
+    requests = []
+    for flag in flags:
+        start = flag.get("start_index", 0)
+        end = flag.get("end_index", 0)
+        if start >= end:
+            continue
+        requests.append({
+            "updateTextStyle": {
+                "range": {"startIndex": start, "endIndex": end},
+                "textStyle": {"strikethrough": False},
+                "fields": "strikethrough",
+            }
+        })
+    if requests:
+        BATCH_SIZE = 50
+        for chunk_start in range(0, len(requests), BATCH_SIZE):
+            chunk = requests[chunk_start: chunk_start + BATCH_SIZE]
+            docs.documents().batchUpdate(documentId=doc_id, body={"requests": chunk}).execute()
+
+
+def strikethrough_flagged_paragraphs(doc_id: str, flags: list[dict]) -> int:
+    """
+    Apply strikethrough formatting to flagged (non-compliant) paragraphs.
+
+    Uses Google Docs API batchUpdate with UpdateTextStyle to set strikethrough=True.
+    Also applies a grey foreground color so struck text is visually muted.
+    Returns the number of paragraphs struck through.
+    """
+    from googleapiclient.discovery import build
+    creds = get_google_creds()
+    docs = build("docs", "v1", credentials=creds, cache_discovery=False)
+
+    requests = []
+    for flag in flags:
+        if flag["classification"] == "compliant":
+            continue
+
+        start = flag.get("start_index", 0)
+        end = flag.get("end_index", 0)
+        if start >= end:
+            continue
+
+        requests.append({
+            "updateTextStyle": {
+                "range": {"startIndex": start, "endIndex": end},
+                "textStyle": {
+                    "strikethrough": True,
+                    "foregroundColor": {
+                        "color": {"rgbColor": _STRIKETHROUGH_COLOR},
+                    },
+                },
+                "fields": "strikethrough,foregroundColor",
+            }
+        })
+
+    if not requests:
+        return 0
+
+    BATCH_SIZE = 50
+    for chunk_start in range(0, len(requests), BATCH_SIZE):
+        chunk = requests[chunk_start: chunk_start + BATCH_SIZE]
+        docs.documents().batchUpdate(documentId=doc_id, body={"requests": chunk}).execute()
+
     return len(requests)

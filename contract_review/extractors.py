@@ -115,11 +115,16 @@ def load_rulebook(path: Path) -> list[Rule]:
 
 def fetch_gdoc_paragraphs(doc_id: str) -> list[dict]:
     """Fetch paragraphs from a Google Doc via the Docs API."""
-    from googleapiclient.discovery import build
+    import requests as _requests
+    from google.auth.transport.requests import AuthorizedSession
 
     creds = get_google_creds()
-    service = build("docs", "v1", credentials=creds, cache_discovery=False)
-    doc = service.documents().get(documentId=doc_id).execute()
+    session = AuthorizedSession(creds)
+    session.timeout = 60
+
+    resp = session.get(f"https://docs.googleapis.com/v1/documents/{doc_id}")
+    resp.raise_for_status()
+    doc = resp.json()
 
     paragraphs: list[dict] = []
     for element in doc.get("body", {}).get("content", []):

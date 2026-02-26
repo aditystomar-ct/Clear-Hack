@@ -1503,16 +1503,17 @@ def main() -> None:
     report_path = generate_html_report(flags, summary, output_metadata)
     print(f"  HTML report written to: {report_path}")
 
-    # Add comments to Google Doc — only where there are real issues
+    # Add comments, highlights, and strikethrough to Google Doc — only where there are real issues
     if input_doc_id:
         issue_flags = [f for f in flags if f["classification"] != "compliant"]
         print(f"\n  Clearing old review comments...")
         deleted = clear_old_comments(input_doc_id)
         if deleted:
             print(f"  Removed {deleted} old comments.")
-        # Clear old highlights, then re-apply for flagged paragraphs
-        print(f"  Clearing old highlights...")
+        # Clear old highlights and strikethroughs, then re-apply for flagged paragraphs
+        print(f"  Clearing old highlights and strikethroughs...")
         clear_old_highlights(input_doc_id, flags)
+        clear_old_strikethroughs(input_doc_id, flags)
 
         print(f"  Adding comments to {len(issue_flags)} flagged paragraphs...")
         added = add_comments_to_doc(input_doc_id, flags)
@@ -1521,6 +1522,10 @@ def main() -> None:
         print(f"  Highlighting flagged paragraphs...")
         highlighted = highlight_flagged_paragraphs(input_doc_id, flags)
         print(f"  {highlighted} paragraphs highlighted (yellow = has comment in sidebar).")
+
+        print(f"  Applying strikethrough to flagged paragraphs...")
+        struck = strikethrough_flagged_paragraphs(input_doc_id, flags)
+        print(f"  {struck} paragraphs struck through.")
 
     # ---- Print summary (rich or plain) ----
     print_rich_summary(summary, flags, output_metadata)
