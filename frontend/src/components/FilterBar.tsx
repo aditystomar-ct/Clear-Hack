@@ -44,8 +44,6 @@ export default function FilterBar({
         <SelectContent>
           <SelectItem value="All">All Classifications</SelectItem>
           <SelectItem value="compliant">Compliant</SelectItem>
-          <SelectItem value="deviation_minor">Deviation Minor</SelectItem>
-          <SelectItem value="deviation_major">Deviation Major</SelectItem>
           <SelectItem value="non_compliant">Non Compliant</SelectItem>
         </SelectContent>
       </Select>

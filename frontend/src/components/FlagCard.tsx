@@ -71,10 +71,8 @@ export default function FlagCard({
 
   const acceptMut = useMutation({
     mutationFn: () => api.acceptFlag(reviewId, flag.flag_id, comment, ""),
-    onSuccess: (res) => {
-      const msgs = res.messages.join(". ");
-      toast.success(`${flag.flag_id} accepted. ${msgs}`);
-      if (res.errors.length) toast.error(res.errors.join(" | "));
+    onSuccess: () => {
+      toast.success(`${flag.flag_id} accepted.`);
       queryClient.invalidateQueries({ queryKey: ["review", reviewId] });
       queryClient.invalidateQueries({ queryKey: ["reviewFlags", reviewId] });
     },
