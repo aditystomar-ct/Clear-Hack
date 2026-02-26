@@ -1,10 +1,9 @@
-"""Google Docs comment, highlight, and strikethrough operations."""
+"""Google Docs comment and highlight operations."""
 
 import json as _json
 from .auth import get_google_creds
 
 _COMMENT_HIGHLIGHT = {"red": 1.00, "green": 0.95, "blue": 0.60}
-_STRIKETHROUGH_COLOR = {"red": 0.80, "green": 0.80, "blue": 0.80}  # Grey out struck text
 
 
 def clear_old_comments(doc_id: str) -> int:
@@ -167,73 +166,3 @@ def highlight_flagged_paragraphs(doc_id: str, flags: list[dict]) -> int:
     return len(requests)
 
 
-def clear_old_strikethroughs(doc_id: str, flags: list[dict]) -> None:
-    """Remove strikethrough formatting from all flagged ranges (undo previous runs)."""
-    from googleapiclient.discovery import build
-    creds = get_google_creds()
-    docs = build("docs", "v1", credentials=creds, cache_discovery=False)
-
-    requests = []
-    for flag in flags:
-        start = flag.get("start_index", 0)
-        end = flag.get("end_index", 0)
-        if start >= end:
-            continue
-        requests.append({
-            "updateTextStyle": {
-                "range": {"startIndex": start, "endIndex": end},
-                "textStyle": {"strikethrough": False},
-                "fields": "strikethrough",
-            }
-        })
-    if requests:
-        BATCH_SIZE = 50
-        for chunk_start in range(0, len(requests), BATCH_SIZE):
-            chunk = requests[chunk_start: chunk_start + BATCH_SIZE]
-            docs.documents().batchUpdate(documentId=doc_id, body={"requests": chunk}).execute()
-
-
-def strikethrough_flagged_paragraphs(doc_id: str, flags: list[dict]) -> int:
-    """
-    Apply strikethrough formatting to flagged (non-compliant) paragraphs.
-
-    Uses Google Docs API batchUpdate with UpdateTextStyle to set strikethrough=True.
-    Also applies a grey foreground color so struck text is visually muted.
-    Returns the number of paragraphs struck through.
-    """
-    from googleapiclient.discovery import build
-    creds = get_google_creds()
-    docs = build("docs", "v1", credentials=creds, cache_discovery=False)
-
-    requests = []
-    for flag in flags:
-        if flag["classification"] == "compliant":
-            continue
-
-        start = flag.get("start_index", 0)
-        end = flag.get("end_index", 0)
-        if start >= end:
-            continue
-
-        requests.append({
-            "updateTextStyle": {
-                "range": {"startIndex": start, "endIndex": end},
-                "textStyle": {
-                    "strikethrough": True,
-                    "foregroundColor": {
-                        "color": {"rgbColor": _STRIKETHROUGH_COLOR},
-                    },
-                },
-                "fields": "strikethrough,foregroundColor",
-            }
-        })
-
-    if not requests:
-        return 0
-
-    BATCH_SIZE = 50
-    for chunk_start in range(0, len(requests), BATCH_SIZE):
-        chunk = requests[chunk_start: chunk_start + BATCH_SIZE]
-        docs.documents().batchUpdate(documentId=doc_id, body={"requests": chunk}).execute()
-
-    return len(requests)

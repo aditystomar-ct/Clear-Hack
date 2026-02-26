@@ -18,10 +18,8 @@ if _env_path.exists():
 # ---------------------------------------------------------------------------
 # Paths
 # ---------------------------------------------------------------------------
-RULEBOOK_PATH = BASE_DIR / "DPA Rulebook.xlsx"
+RULEBOOK_PATH = BASE_DIR / "rulebook.json"
 PLAYBOOK_PATH = BASE_DIR / "Clear Tax_DPA.docx"
-OUTPUT_DIR = BASE_DIR / "output"
-OUTPUT_PATH = OUTPUT_DIR / "flags.json"
 CREDS_PATH = BASE_DIR / "credentials.json"
 DB_PATH = BASE_DIR / "review.db"
 

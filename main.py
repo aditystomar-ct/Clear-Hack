@@ -4,8 +4,7 @@ DPA Contract Review Tool
 
 Fetches an incoming DPA from a Google Doc (paragraph by paragraph),
 compares it against a ClearTax playbook and a rulebook loaded from xlsx,
-flags deviations by adding comments directly on the Google Doc,
-and writes a structured flags.json.
+and flags deviations by adding comments directly on the Google Doc.
 
 Usage:
     python main.py <input_doc_url_or_id> [--playbook <playbook_url_or_id>]
@@ -42,10 +41,8 @@ if _env_path.exists():
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
-RULEBOOK_PATH = BASE_DIR / "DPA Rulebook.xlsx"
+RULEBOOK_PATH = BASE_DIR / "rulebook.json"
 PLAYBOOK_PATH = BASE_DIR / "Clear Tax_DPA.docx"
-OUTPUT_DIR = BASE_DIR / "output"
-OUTPUT_PATH = OUTPUT_DIR / "flags.json"
 
 EMBED_MODEL = os.environ.get("EMBED_MODEL", "BAAI/bge-base-en-v1.5")
 EMBED_MODEL_FALLBACK = "all-MiniLM-L6-v2"
@@ -82,7 +79,6 @@ class Rule:
     clause: str
     subclause: str
     risk: str
-    response: str
 
 
 # ---------------------------------------------------------------------------
@@ -133,90 +129,24 @@ def extract_doc_id(url_or_id: str) -> str:
 # ---------------------------------------------------------------------------
 
 def load_rulebook(path: Path) -> list[Rule]:
-    """
-    Parse DPA Rulebook.xlsx dynamically.
-    Reads Legal and Infosec sheets, extracts rules with clause/subclause/risk/response.
-    Handles hierarchical rows where empty Clause means continuation of previous.
-    """
-    import openpyxl
-
+    """Load rulebook from rulebook.json."""
     if not path.exists():
         print(f"Error: Rulebook not found: {path}")
         sys.exit(1)
 
-    wb = openpyxl.load_workbook(str(path), read_only=True)
+    data = json.loads(path.read_text())
     rules: list[Rule] = []
-    rule_idx = 0
 
-    for sheet_name in wb.sheetnames:
-        name_lower = sheet_name.lower()
-        if "legal" in name_lower:
-            source = "legal"
-        elif "infosec" in name_lower:
-            source = "infosec"
-        else:
-            continue  # skip non-rule sheets (General automation, etc.)
-
-        ws = wb[sheet_name]
-        rows = list(ws.iter_rows(values_only=True))
-        if len(rows) < 2:
-            continue
-
-        # --- Discover column indices from header row ---
-        header = [str(c).lower().strip() if c else "" for c in rows[0]]
-
-        def find_col(*keywords):
-            for i, h in enumerate(header):
-                if any(kw in h for kw in keywords):
-                    return i
-            return None
-
-        col_clause = find_col("clause")
-        col_sub = find_col("sub-clause", "subclause", "sub clause")
-        col_risk = find_col("risk")
-        col_resp = find_col("response")
-
-        if col_clause is None and col_sub is None:
-            continue  # can't parse this sheet
-
-        # If no separate subclause column, use clause column for both
-        if col_sub is None:
-            col_sub = col_clause
-
-        # --- Parse data rows ---
-        current_clause = ""
-        for row in rows[1:]:
-            def cell(idx):
-                if idx is None or idx >= len(row):
-                    return ""
-                return str(row[idx]).strip() if row[idx] else ""
-
-            clause_val = cell(col_clause)
-            sub_val = cell(col_sub)
-            risk_val = cell(col_risk)
-            resp_val = cell(col_resp)
-
-            # Track parent clause for hierarchical rows
-            if clause_val:
-                current_clause = clause_val
-
-            # Skip empty / section-header rows (no risk or no response)
-            if not risk_val or risk_val.lower() in ("none", "risk", ""):
-                continue
-            if not resp_val:
-                continue
-
-            rule_idx += 1
+    for source in ("legal", "infosec"):
+        for entry in data.get(source, []):
             rules.append(Rule(
-                rule_id=f"{source}_{rule_idx}",
+                rule_id=entry["rule_id"],
                 source=source,
-                clause=current_clause,
-                subclause=sub_val or current_clause,
-                risk=risk_val,
-                response=resp_val,
+                clause=entry["clause"],
+                subclause=entry.get("subclause", entry["clause"]),
+                risk=entry["risk"],
             ))
 
-    wb.close()
     return rules
 
 
@@ -590,7 +520,6 @@ def _build_prompt(
             rules_block += (
                 f"\n- [{r.rule_id}] {r.clause} (Risk: {r.risk})\n"
                 f"  Condition: {r.subclause}\n"
-                f"  Required: {r.response}\n"
             )
 
     return f"""You are a legal analyst reviewing a DPA for ClearTax (Defmacro Software Pvt Ltd), the data processor.
@@ -642,7 +571,6 @@ def _heuristic(
     rule_risks = [r.risk for r, _ in strong_rules]
     max_risk = "High" if "High" in rule_risks else ("Medium" if "Medium" in rule_risks else "Low")
     rule_ids = ", ".join(r.rule_id for r, _ in strong_rules)
-    top_response = strong_rules[0][0].response if strong_rules else ""
     confidence = _compute_confidence(sim, strong_rules)
 
     # Strong match + no meaningful rules → compliant
@@ -661,14 +589,14 @@ def _heuristic(
     if mt == "strong":
         return dict(classification="deviation_minor", risk_level=max_risk,
                     explanation=f"Matches standard (sim={sim:.2f}) but triggers rules: {rule_ids}.",
-                    suggested_redline=top_response, confidence=confidence)
+                    suggested_redline="", confidence=confidence)
 
     # Partial match + rules triggered → severity depends on risk
     if mt == "partial":
         cls = "deviation_major" if max_risk == "High" else "deviation_minor"
         return dict(classification=cls, risk_level=max_risk,
                     explanation=f"Partial match (sim={sim:.2f}). Triggered: {rule_ids}.",
-                    suggested_redline=top_response, confidence=confidence)
+                    suggested_redline="", confidence=confidence)
 
     # New clause (no playbook equivalent)
     if not strong_rules:
@@ -681,7 +609,7 @@ def _heuristic(
         classification="deviation_major" if max_risk == "High" else "deviation_minor",
         risk_level=max_risk,
         explanation=f"New clause not in ClearTax standard (sim={sim:.2f}). Triggered: {rule_ids}.",
-        suggested_redline=top_response, confidence=confidence,
+        suggested_redline="", confidence=confidence,
     )
 
 
@@ -975,249 +903,6 @@ def generate_summary(flags):
     }
 
 
-def generate_html_report(flags: list[dict], summary: dict, metadata: dict) -> str:
-    """Generate a self-contained interactive HTML report."""
-    import html as html_mod
-
-    risk_colors = {"High": "#e74c3c", "Medium": "#f39c12", "Low": "#27ae60"}
-    cls_colors = {
-        "non_compliant": "#c0392b", "deviation_major": "#e74c3c",
-        "deviation_minor": "#f39c12", "compliant": "#27ae60",
-    }
-
-    # Build table rows
-    rows_html = ""
-    for f in flags:
-        risk_badge = f'<span class="badge" style="background:{risk_colors.get(f["risk_level"], "#999")}">{f["risk_level"]}</span>'
-        cls_badge = f'<span class="badge" style="background:{cls_colors.get(f["classification"], "#999")}">{f["classification"].replace("_", " ").title()}</span>'
-        confidence_pct = f'{f.get("confidence", 0) * 100:.0f}%'
-
-        rules_html = ""
-        if f["triggered_rules"]:
-            rules_html = "<ul>" + "".join(
-                f'<li>[{r["source"].upper()}] {html_mod.escape(r["clause"])} (Risk: {r["risk"]})</li>'
-                for r in f["triggered_rules"]
-            ) + "</ul>"
-
-        pb_text = html_mod.escape(f["matched_playbook_text"] or "No playbook match")
-        inp_text = html_mod.escape(f["input_text"])
-        redline = html_mod.escape(f["suggested_redline"] or "None")
-        explanation = html_mod.escape(f["explanation"])
-
-        rows_html += f"""
-        <tr class="flag-row" data-risk="{f['risk_level']}" data-cls="{f['classification']}">
-            <td>{f['flag_id']}</td>
-            <td>{html_mod.escape(f['input_clause_section'] or 'N/A')}</td>
-            <td>{risk_badge}</td>
-            <td>{cls_badge}</td>
-            <td>{confidence_pct}</td>
-            <td>{f['similarity_score']:.2f} ({f['match_type']})</td>
-            <td><button class="expand-btn" onclick="toggleRow(this)">+</button></td>
-        </tr>
-        <tr class="detail-row" style="display:none">
-            <td colspan="7">
-                <div class="detail-grid">
-                    <div class="detail-col">
-                        <h4>Incoming Clause</h4>
-                        <p class="clause-text">{inp_text}</p>
-                    </div>
-                    <div class="detail-col">
-                        <h4>Playbook Clause</h4>
-                        <p class="clause-text">{pb_text}</p>
-                    </div>
-                </div>
-                <div class="detail-section">
-                    <h4>Explanation</h4>
-                    <p>{explanation}</p>
-                </div>
-                <div class="detail-section">
-                    <h4>Triggered Rules</h4>
-                    {rules_html or '<p>None</p>'}
-                </div>
-                <div class="detail-section">
-                    <h4>Suggested Redline</h4>
-                    <p class="redline">{redline}</p>
-                </div>
-            </td>
-        </tr>"""
-
-    risk_bd = summary.get("risk_breakdown", {})
-    cls_bd = summary.get("classification_breakdown", {})
-
-    report = f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DPA Contract Review Report</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<style>
-  * {{ box-sizing: border-box; margin: 0; padding: 0; }}
-  body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f6fa; color: #2c3e50; padding: 20px; }}
-  .container {{ max-width: 1200px; margin: 0 auto; }}
-  h1 {{ font-size: 1.8em; margin-bottom: 5px; }}
-  .subtitle {{ color: #7f8c8d; margin-bottom: 20px; }}
-  .summary-cards {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 25px; }}
-  .card {{ background: white; border-radius: 10px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); text-align: center; }}
-  .card .number {{ font-size: 2.2em; font-weight: 700; }}
-  .card .label {{ color: #7f8c8d; font-size: 0.85em; margin-top: 5px; }}
-  .charts {{ display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 25px; }}
-  .chart-box {{ background: white; border-radius: 10px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }}
-  .chart-box canvas {{ max-height: 250px; }}
-  .filters {{ margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }}
-  .filters select, .filters input {{ padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.9em; }}
-  table {{ width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }}
-  th {{ background: #34495e; color: white; padding: 12px 15px; text-align: left; cursor: pointer; user-select: none; }}
-  th:hover {{ background: #2c3e50; }}
-  td {{ padding: 12px 15px; border-bottom: 1px solid #ecf0f1; }}
-  .flag-row:hover {{ background: #f8f9fa; }}
-  .badge {{ padding: 4px 10px; border-radius: 12px; color: white; font-size: 0.8em; font-weight: 600; }}
-  .expand-btn {{ background: #3498db; color: white; border: none; border-radius: 50%; width: 28px; height: 28px; cursor: pointer; font-size: 1.1em; }}
-  .expand-btn:hover {{ background: #2980b9; }}
-  .detail-row td {{ background: #f8f9fa; padding: 20px; }}
-  .detail-grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 15px; }}
-  .detail-col {{ background: white; border-radius: 8px; padding: 15px; border: 1px solid #e0e0e0; }}
-  .detail-col h4 {{ color: #2c3e50; margin-bottom: 8px; }}
-  .clause-text {{ font-size: 0.9em; line-height: 1.6; color: #555; }}
-  .detail-section {{ margin-top: 12px; }}
-  .detail-section h4 {{ color: #2c3e50; margin-bottom: 5px; }}
-  .redline {{ background: #fff3cd; padding: 10px; border-radius: 6px; border-left: 3px solid #f39c12; font-style: italic; }}
-  .print-btn {{ background: #2c3e50; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 0.9em; }}
-  .print-btn:hover {{ background: #34495e; }}
-  @media print {{ .filters, .print-btn, .expand-btn {{ display: none; }} .detail-row {{ display: table-row !important; }} }}
-  @media (max-width: 768px) {{ .charts, .detail-grid {{ grid-template-columns: 1fr; }} }}
-</style>
-</head>
-<body>
-<div class="container">
-  <h1>DPA Contract Review Report</h1>
-  <p class="subtitle">Generated by {html_mod.escape(metadata.get('tool', 'DPA Review Tool'))} | Mode: {html_mod.escape(metadata.get('analysis_mode', 'N/A'))} | Model: {html_mod.escape(metadata.get('embedding_model', 'N/A'))}</p>
-
-  <div class="summary-cards">
-    <div class="card"><div class="number">{summary['total_clauses_analyzed']}</div><div class="label">Clauses Analyzed</div></div>
-    <div class="card"><div class="number" style="color:#e74c3c">{summary['high_risk_count']}</div><div class="label">High Risk</div></div>
-    <div class="card"><div class="number" style="color:#c0392b">{summary['non_compliant_count']}</div><div class="label">Non-Compliant</div></div>
-    <div class="card"><div class="number" style="color:#27ae60">{cls_bd.get('compliant', 0)}</div><div class="label">Compliant</div></div>
-  </div>
-
-  <div class="charts">
-    <div class="chart-box"><canvas id="riskChart"></canvas></div>
-    <div class="chart-box"><canvas id="clsChart"></canvas></div>
-  </div>
-
-  <div class="filters">
-    <select id="filterRisk" onchange="filterTable()">
-      <option value="">All Risks</option>
-      <option value="High">High</option>
-      <option value="Medium">Medium</option>
-      <option value="Low">Low</option>
-    </select>
-    <select id="filterCls" onchange="filterTable()">
-      <option value="">All Classifications</option>
-      <option value="compliant">Compliant</option>
-      <option value="deviation_minor">Deviation Minor</option>
-      <option value="deviation_major">Deviation Major</option>
-      <option value="non_compliant">Non-Compliant</option>
-    </select>
-    <input type="text" id="filterSearch" placeholder="Search clauses..." oninput="filterTable()">
-    <button class="print-btn" onclick="window.print()">Export PDF</button>
-  </div>
-
-  <table>
-    <thead>
-      <tr>
-        <th onclick="sortTable(0)">Flag ID</th>
-        <th onclick="sortTable(1)">Section</th>
-        <th onclick="sortTable(2)">Risk</th>
-        <th onclick="sortTable(3)">Classification</th>
-        <th onclick="sortTable(4)">Confidence</th>
-        <th onclick="sortTable(5)">Similarity</th>
-        <th>Details</th>
-      </tr>
-    </thead>
-    <tbody id="flagsBody">
-      {rows_html}
-    </tbody>
-  </table>
-</div>
-
-<script>
-function toggleRow(btn) {{
-  const detailRow = btn.closest('tr').nextElementSibling;
-  const isHidden = detailRow.style.display === 'none';
-  detailRow.style.display = isHidden ? 'table-row' : 'none';
-  btn.textContent = isHidden ? '-' : '+';
-}}
-
-function filterTable() {{
-  const risk = document.getElementById('filterRisk').value;
-  const cls = document.getElementById('filterCls').value;
-  const search = document.getElementById('filterSearch').value.toLowerCase();
-  const rows = document.querySelectorAll('.flag-row');
-  rows.forEach(row => {{
-    const detail = row.nextElementSibling;
-    const matchRisk = !risk || row.dataset.risk === risk;
-    const matchCls = !cls || row.dataset.cls === cls;
-    const matchSearch = !search || row.textContent.toLowerCase().includes(search) ||
-                        detail.textContent.toLowerCase().includes(search);
-    const show = matchRisk && matchCls && matchSearch;
-    row.style.display = show ? '' : 'none';
-    if (!show) detail.style.display = 'none';
-  }});
-}}
-
-let sortDir = {{}};
-function sortTable(col) {{
-  const tbody = document.getElementById('flagsBody');
-  const flagRows = Array.from(tbody.querySelectorAll('.flag-row'));
-  sortDir[col] = !sortDir[col];
-  flagRows.sort((a, b) => {{
-    const aVal = a.children[col].textContent.trim();
-    const bVal = b.children[col].textContent.trim();
-    const aNum = parseFloat(aVal);
-    const bNum = parseFloat(bVal);
-    let cmp = (!isNaN(aNum) && !isNaN(bNum)) ? aNum - bNum : aVal.localeCompare(bVal);
-    return sortDir[col] ? cmp : -cmp;
-  }});
-  flagRows.forEach(row => {{
-    const detail = row.nextElementSibling;
-    tbody.appendChild(row);
-    tbody.appendChild(detail);
-  }});
-}}
-
-// Charts
-const riskCtx = document.getElementById('riskChart').getContext('2d');
-new Chart(riskCtx, {{
-  type: 'doughnut',
-  data: {{
-    labels: {json.dumps(list(risk_bd.keys()))},
-    datasets: [{{ data: {json.dumps(list(risk_bd.values()))},
-      backgroundColor: {json.dumps([risk_colors.get(k, '#999') for k in risk_bd.keys()])} }}]
-  }},
-  options: {{ responsive: true, plugins: {{ title: {{ display: true, text: 'Risk Breakdown' }} }} }}
-}});
-
-const clsCtx = document.getElementById('clsChart').getContext('2d');
-new Chart(clsCtx, {{
-  type: 'doughnut',
-  data: {{
-    labels: {json.dumps([k.replace('_', ' ').title() for k in cls_bd.keys()])},
-    datasets: [{{ data: {json.dumps(list(cls_bd.values()))},
-      backgroundColor: {json.dumps([cls_colors.get(k, '#999') for k in cls_bd.keys()])} }}]
-  }},
-  options: {{ responsive: true, plugins: {{ title: {{ display: true, text: 'Classification Breakdown' }} }} }}
-}});
-</script>
-</body>
-</html>"""
-
-    report_path = OUTPUT_DIR / "report.html"
-    with open(report_path, "w") as f:
-        f.write(report)
-    return str(report_path)
-
-
 def print_rich_summary(summary: dict, flags: list[dict], metadata: dict) -> None:
     """Print a rich formatted summary to the terminal."""
     try:
@@ -1482,7 +1167,6 @@ def main() -> None:
 
     # ---- Step 6: Output ----
     print("\n[Step 6/6] Generating output...")
-    OUTPUT_DIR.mkdir(exist_ok=True)
     summary = generate_summary(flags)
 
     output_metadata = {
@@ -1494,30 +1178,16 @@ def main() -> None:
         "analysis_mode": analysis_mode,
         "embedding_model": EMBED_MODEL,
     }
-    output = {
-        "metadata": output_metadata,
-        "summary": summary,
-        "flags": flags,
-    }
-    with open(OUTPUT_PATH, "w") as f:
-        json.dump(output, f, indent=2, ensure_ascii=False)
-    print(f"  flags.json written to: {OUTPUT_PATH}")
 
-    # Generate HTML report
-    report_path = generate_html_report(flags, summary, output_metadata)
-    print(f"  HTML report written to: {report_path}")
-
-    # Add comments, highlights, and strikethrough to Google Doc — only where there are real issues
+    # Add comments and highlights to Google Doc — only where there are real issues
     if input_doc_id:
         issue_flags = [f for f in flags if f["classification"] != "compliant"]
         print(f"\n  Clearing old review comments...")
         deleted = clear_old_comments(input_doc_id)
         if deleted:
             print(f"  Removed {deleted} old comments.")
-        # Clear old highlights and strikethroughs, then re-apply for flagged paragraphs
-        print(f"  Clearing old highlights and strikethroughs...")
+        print(f"  Clearing old highlights...")
         clear_old_highlights(input_doc_id, flags)
-        clear_old_strikethroughs(input_doc_id, flags)
 
         print(f"  Adding comments to {len(issue_flags)} flagged paragraphs...")
         added = add_comments_to_doc(input_doc_id, flags)
@@ -1526,10 +1196,6 @@ def main() -> None:
         print(f"  Highlighting flagged paragraphs...")
         highlighted = highlight_flagged_paragraphs(input_doc_id, flags)
         print(f"  {highlighted} paragraphs highlighted (yellow = has comment in sidebar).")
-
-        print(f"  Applying strikethrough to flagged paragraphs...")
-        struck = strikethrough_flagged_paragraphs(input_doc_id, flags)
-        print(f"  {struck} paragraphs struck through.")
 
     # ---- Print summary (rich or plain) ----
     print_rich_summary(summary, flags, output_metadata)

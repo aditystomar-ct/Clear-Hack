@@ -1,10 +1,9 @@
 """Main orchestration pipeline — embedding-based matching with heuristic/LLM/hybrid analysis."""
 
-import json
 from pathlib import Path
 
 from .config import (
-    OUTPUT_DIR, OUTPUT_PATH, ANTHROPIC_API_KEY, LLM_MODEL,
+    ANTHROPIC_API_KEY, LLM_MODEL,
     PLAYBOOK_PATH, RULEBOOK_PATH, EMBED_MODEL,
 )
 from .models import Clause
@@ -16,11 +15,10 @@ from .matching import (
     match_clauses, match_all_rules, apply_rule_specificity, get_active_model_name,
 )
 from .analysis import analyze_clause, analyze_clauses_batch, heuristic, _compute_confidence
-from .output import build_flag, generate_summary, generate_html_report, print_rich_summary
+from .output import build_flag, generate_summary, print_rich_summary
 from .google_doc import (
-    clear_old_comments, clear_old_highlights, clear_old_strikethroughs,
+    clear_old_comments, clear_old_highlights,
     add_comments_to_doc, highlight_flagged_paragraphs,
-    strikethrough_flagged_paragraphs,
 )
 from .database import save_review
 from .notifications import send_slack_notification
@@ -40,7 +38,7 @@ def run_pipeline(
     Run the full DPA review pipeline with embedding-based matching.
 
     Supports heuristic, llm, and hybrid analysis modes.
-    Returns a dict with metadata, summary, flags, review_id, and report_path.
+    Returns a dict with metadata, summary, flags, and review_id.
     """
     BASE_DIR = Path(__file__).parent.parent
 
@@ -87,13 +85,13 @@ def run_pipeline(
     _t0 = _time.time()
 
     # Step 1: Load rulebook
-    progress(1, 8, "[Step 1/8] Loading rulebook...")
+    progress(1, 8, "[Step 1/7] Loading rulebook...")
     rules = load_rulebook(RULEBOOK_PATH)
     print(f"  Loaded {len(rules)} rules ({sum(1 for r in rules if r.source == 'legal')} legal, "
           f"{sum(1 for r in rules if r.source == 'infosec')} infosec)")
 
     # Step 2: Fetch paragraphs
-    progress(2, 8, "[Step 2/8] Fetching paragraphs...")
+    progress(2, 8, "[Step 2/7] Fetching paragraphs...")
     if input_doc_id:
         input_paras = fetch_gdoc_paragraphs(input_doc_id)
     else:
@@ -110,7 +108,7 @@ def run_pipeline(
     print(f"  Playbook: {len(pb_paras)} paragraphs")
 
     # Step 3: Extract clauses
-    progress(3, 8, "[Step 3/8] Extracting clauses...")
+    progress(3, 8, "[Step 3/7] Extracting clauses...")
     input_clauses = extract_clauses(input_paras, "input")
     playbook_clauses = extract_clauses(pb_paras, "playbook")
     print(f"  Input clauses:    {len(input_clauses)}")
@@ -122,7 +120,7 @@ def run_pipeline(
         raise ValueError("No clauses extracted from playbook.")
 
     # Step 4: Match clauses + rules
-    progress(4, 8, "[Step 4/8] Matching clauses...")
+    progress(4, 8, "[Step 4/7] Matching clauses...")
     matches = match_clauses(input_clauses, playbook_clauses)
     strong = sum(1 for *_, mt in matches if mt == "strong")
     partial = sum(1 for *_, mt in matches if mt == "partial")
@@ -135,7 +133,7 @@ def run_pipeline(
     print(f"  Clauses with triggered rules: {triggered}/{len(matches)}")
 
     # Step 5: Analyse clauses (batched LLM for speed)
-    progress(5, 8, "[Step 5/8] Analysing clauses...")
+    progress(5, 8, "[Step 5/7] Analysing clauses...")
     flags: list[dict] = []
     total = len(matches)
     llm_calls = 0
@@ -161,8 +159,8 @@ def run_pipeline(
                       for (inp, pb, sim, mt), crules in zip(matches, clause_rules)]
 
         def on_llm_progress(done, batch_total, msg):
-            frac = 5 / 8 + (done / batch_total) * (1 / 8) if batch_total > 0 else 5 / 8
-            progress(frac * 8, 8, f"[Step 5/8] {msg}")
+            frac = 5 / 7 + (done / batch_total) * (1 / 7) if batch_total > 0 else 5 / 7
+            progress(frac * 7, 7, f"[Step 5/7] {msg}")
 
         batch_results = analyze_clauses_batch(llm_items, on_progress=on_llm_progress)
         llm_calls = total
@@ -197,8 +195,8 @@ def run_pipeline(
         llm_results_map = {}
         if llm_items:
             def on_llm_progress(done, batch_total, msg):
-                frac = 5 / 8 + (done / batch_total) * (1 / 8) if batch_total > 0 else 5 / 8
-                progress(frac * 8, 8, f"[Step 5/8] {msg}")
+                frac = 5 / 7 + (done / batch_total) * (1 / 7) if batch_total > 0 else 5 / 7
+                progress(frac * 7, 7, f"[Step 5/7] {msg}")
 
             batch_results = analyze_clauses_batch(llm_items, on_progress=on_llm_progress)
             llm_calls = len(llm_items)
@@ -215,9 +213,7 @@ def run_pipeline(
     if analysis_mode != "heuristic":
         print(f"  LLM batches: {(llm_calls + 4) // 5} calls for {llm_calls} clauses (5 per batch)")
 
-    # Step 6: Generate output files
-    progress(6, 8, "[Step 6/8] Generating reports...")
-    OUTPUT_DIR.mkdir(exist_ok=True)
+    # Step 6: Google Doc comments + highlights
     summary = generate_summary(flags)
 
     embedding_model = get_active_model_name()
@@ -234,37 +230,25 @@ def run_pipeline(
         "elapsed_seconds": elapsed,
     }
 
-    output = {"metadata": output_metadata, "summary": summary, "flags": flags}
-    with open(OUTPUT_PATH, "w") as f:
-        json.dump(output, f, indent=2, ensure_ascii=False)
-    print(f"  flags.json written to: {OUTPUT_PATH}")
-
-    report_path = generate_html_report(flags, summary, output_metadata)
-    print(f"  HTML report written to: {report_path}")
-
-    # Step 7: Google Doc comments + highlights
     if input_doc_id and add_google_comments:
-        progress(7, 8, "[Step 7/8] Updating Google Doc...")
+        progress(6, 7, "[Step 6/7] Updating Google Doc...")
         issue_flags = [f for f in flags if f["classification"] != "compliant"]
         print(f"  Clearing old comments...")
         deleted = clear_old_comments(input_doc_id)
         if deleted:
             print(f"  Removed {deleted} old comments.")
-        print(f"  Clearing old highlights and strikethroughs...")
+        print(f"  Clearing old highlights...")
         clear_old_highlights(input_doc_id, flags)
-        clear_old_strikethroughs(input_doc_id, flags)
         print(f"  Adding {len(issue_flags)} comments...")
         added = add_comments_to_doc(input_doc_id, flags)
         print(f"  {added} comments added.")
         highlighted = highlight_flagged_paragraphs(input_doc_id, flags)
         print(f"  {highlighted} paragraphs highlighted.")
-        struck = strikethrough_flagged_paragraphs(input_doc_id, flags)
-        print(f"  {struck} paragraphs struck through.")
     else:
-        progress(7, 8, "[Step 7/8] Skipping Google Doc (local file)...")
+        progress(6, 7, "[Step 6/7] Skipping Google Doc (local file)...")
 
-    # Step 8: Save to database
-    progress(8, 8, "[Step 8/8] Saving review...")
+    # Step 7: Save to database
+    progress(7, 7, "[Step 7/7] Saving review...")
     contract_name = input_doc_id or input_path.name
     review_id = save_review(
         contract_name=contract_name,
@@ -287,5 +271,4 @@ def run_pipeline(
         "summary": summary,
         "flags": flags,
         "review_id": review_id,
-        "report_path": report_path,
     }

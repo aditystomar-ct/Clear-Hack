@@ -24,88 +24,34 @@ def extract_doc_id(url_or_id: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Load Rulebook from XLSX
+# Load Rulebook from JSON
 # ---------------------------------------------------------------------------
 
 def load_rulebook(path: Path) -> list[Rule]:
     """
-    Parse DPA Rulebook.xlsx dynamically.
-    Reads Legal and Infosec sheets, extracts rules with clause/subclause/risk/response.
+    Load rulebook from rulebook.json.
+    Expects {"legal": [...], "infosec": [...]} where each entry has
+    rule_id, clause, subclause, risk, response.
     """
-    import openpyxl
+    import json
 
     if not path.exists():
         print(f"Error: Rulebook not found: {path}")
         sys.exit(1)
 
-    wb = openpyxl.load_workbook(str(path), read_only=True)
+    data = json.loads(path.read_text())
     rules: list[Rule] = []
-    rule_idx = 0
 
-    for sheet_name in wb.sheetnames:
-        name_lower = sheet_name.lower()
-        if "legal" in name_lower:
-            source = "legal"
-        elif "infosec" in name_lower:
-            source = "infosec"
-        else:
-            continue
-
-        ws = wb[sheet_name]
-        rows = list(ws.iter_rows(values_only=True))
-        if len(rows) < 2:
-            continue
-
-        header = [str(c).lower().strip() if c else "" for c in rows[0]]
-
-        def find_col(*keywords):
-            for i, h in enumerate(header):
-                if any(kw in h for kw in keywords):
-                    return i
-            return None
-
-        col_clause = find_col("clause")
-        col_sub = find_col("sub-clause", "subclause", "sub clause")
-        col_risk = find_col("risk")
-        col_resp = find_col("response")
-
-        if col_clause is None and col_sub is None:
-            continue
-
-        if col_sub is None:
-            col_sub = col_clause
-
-        current_clause = ""
-        for row in rows[1:]:
-            def cell(idx):
-                if idx is None or idx >= len(row):
-                    return ""
-                return str(row[idx]).strip() if row[idx] else ""
-
-            clause_val = cell(col_clause)
-            sub_val = cell(col_sub)
-            risk_val = cell(col_risk)
-            resp_val = cell(col_resp)
-
-            if clause_val:
-                current_clause = clause_val
-
-            if not risk_val or risk_val.lower() in ("none", "risk", ""):
-                continue
-            if not resp_val:
-                continue
-
-            rule_idx += 1
+    for source in ("legal", "infosec"):
+        for entry in data.get(source, []):
             rules.append(Rule(
-                rule_id=f"{source}_{rule_idx}",
+                rule_id=entry["rule_id"],
                 source=source,
-                clause=current_clause,
-                subclause=sub_val or current_clause,
-                risk=risk_val,
-                response=resp_val,
+                clause=entry["clause"],
+                subclause=entry.get("subclause", entry["clause"]),
+                risk=entry["risk"],
             ))
 
-    wb.close()
     return rules
 
 

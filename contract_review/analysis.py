@@ -33,7 +33,6 @@ def _build_prompt(
             rules_block += (
                 f"\n- [{r.rule_id}] {r.clause} (Risk: {r.risk})\n"
                 f"  Condition: {r.subclause}\n"
-                f"  Required: {r.response}\n"
             )
 
     return f"""You are a legal analyst reviewing a DPA for ClearTax (Defmacro Software Pvt Ltd), the data processor.
@@ -85,7 +84,6 @@ def heuristic(
     rule_risks = [r.risk for r, _ in strong_rules]
     max_risk = "High" if "High" in rule_risks else ("Medium" if "Medium" in rule_risks else "Low")
     rule_ids = ", ".join(r.rule_id for r, _ in strong_rules)
-    top_response = strong_rules[0][0].response if strong_rules else ""
     confidence = _compute_confidence(sim, strong_rules)
 
     if mt == "strong" and not strong_rules:
@@ -101,13 +99,13 @@ def heuristic(
     if mt == "strong":
         return dict(classification="deviation_minor", risk_level=max_risk,
                     explanation=f"Matches standard (sim={sim:.2f}) but triggers rules: {rule_ids}.",
-                    suggested_redline=top_response, confidence=confidence)
+                    suggested_redline="", confidence=confidence)
 
     if mt == "partial":
         cls = "deviation_major" if max_risk == "High" else "deviation_minor"
         return dict(classification=cls, risk_level=max_risk,
                     explanation=f"Partial match (sim={sim:.2f}). Triggered: {rule_ids}.",
-                    suggested_redline=top_response, confidence=confidence)
+                    suggested_redline="", confidence=confidence)
 
     if not strong_rules:
         return dict(classification="compliant", risk_level="Low",
@@ -118,7 +116,7 @@ def heuristic(
         classification="deviation_major" if max_risk == "High" else "deviation_minor",
         risk_level=max_risk,
         explanation=f"New clause not in ClearTax standard (sim={sim:.2f}). Triggered: {rule_ids}.",
-        suggested_redline=top_response, confidence=confidence,
+        suggested_redline="", confidence=confidence,
     )
 
 
@@ -143,7 +141,7 @@ def _build_batch_prompt(items: list[tuple]) -> str:
         rules_block = ""
         if rules:
             rules_block = " | Rules: " + "; ".join(
-                f"[{r.rule_id}] {r.clause} (Risk: {r.risk}, Required: {r.response})"
+                f"[{r.rule_id}] {r.clause} (Risk: {r.risk})"
                 for r, _ in rules
             )
         clauses_block += f'\n--- CLAUSE {i} ---\n"{inp.text}"\n{pb_block}{rules_block}\n'
