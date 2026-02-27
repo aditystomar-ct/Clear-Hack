@@ -84,9 +84,7 @@ INSTRUCTIONS = """INSTRUCTIONS:
 
 CLASSIFICATION_GUIDE = """CLASSIFICATION GUIDE:
 - "compliant": Clause matches or is substantially equivalent to ClearTax standard. No rules triggered.
-- "deviation_minor": Small differences that don't materially change obligations. Low risk.
-- "deviation_major": Significant deviation from ClearTax standard — imposes new obligations, restricts ClearTax rights, or changes risk allocation.
-- "non_compliant": Directly contradicts ClearTax position or creates unacceptable risk. Requires negotiation."""
+- "non_compliant": Deviates from ClearTax standard — imposes new obligations, restricts ClearTax rights, changes risk allocation, or creates unacceptable risk. Requires review."""
 
 RESPONSE_FORMAT = """RESPONSE FORMAT:
 Return ONLY a JSON array. No markdown fences, no commentary outside the JSON.

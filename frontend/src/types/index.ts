@@ -106,8 +106,6 @@ export interface TeamEmails {
 export interface AcceptResponse {
   flag_id: string;
   status: string;
-  messages: string[];
-  errors: string[];
 }
 
 export interface SSEProgress {

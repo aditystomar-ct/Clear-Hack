@@ -178,10 +178,13 @@ def api_accept_flag(review_id: int, flag_id: str, body: dict):
         if is_google_doc:
             try:
                 from contract_review.google_doc import (
+                    _build_professional_comment,
                     highlight_single,
                     post_manual_comment,
                 )
-                post_manual_comment(doc_id, flag, custom_comment)
+                # If user didn't edit, use auto-generated comment with @emails
+                final_comment = custom_comment or _build_professional_comment(flag, team_emails)
+                post_manual_comment(doc_id, flag, final_comment)
                 highlight_single(doc_id, flag)
             except Exception as e:
                 print(f"  Google Doc update failed: {e}")

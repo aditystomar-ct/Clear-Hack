@@ -126,10 +126,8 @@ def print_rich_summary(summary: dict, flags: list[dict], metadata: dict) -> None
         f"[bold red]High Risk:[/bold red] {risk_bd.get('High', 0)}  "
         f"[bold yellow]Medium:[/bold yellow] {risk_bd.get('Medium', 0)}  "
         f"[bold green]Low:[/bold green] {risk_bd.get('Low', 0)}\n"
-        f"[bold]Compliant:[/bold] {cls_bd.get('compliant', 0)}  "
-        f"[bold yellow]Minor Dev:[/bold yellow] {cls_bd.get('deviation_minor', 0)}  "
-        f"[bold red]Major Dev:[/bold red] {cls_bd.get('deviation_major', 0)}  "
-        f"[bold]Non-Compliant:[/bold] {cls_bd.get('non_compliant', 0)}\n"
+        f"[bold green]Compliant:[/bold green] {cls_bd.get('compliant', 0)}  "
+        f"[bold red]Non-Compliant:[/bold red] {cls_bd.get('non_compliant', 0)}\n"
         f"[bold]Mode:[/bold] {metadata.get('analysis_mode', 'N/A')}  "
         f"[bold]Model:[/bold] {metadata.get('llm_model', 'N/A')}"
     )
