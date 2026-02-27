@@ -30,13 +30,16 @@ ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 LLM_MODEL = "claude-opus-4-6"
 
 # ---------------------------------------------------------------------------
-# Email (SMTP)
+# Email (Resend API — works on Render, no SMTP port needed)
 # ---------------------------------------------------------------------------
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
+EMAIL_FROM = os.environ.get("EMAIL_FROM", "onboarding@resend.dev")
+
+# Legacy SMTP (still works for local dev)
 SMTP_HOST = os.environ.get("SMTP_HOST", "smtp.gmail.com")
 SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))
 SMTP_USER = os.environ.get("SMTP_USER", "")
 SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
-EMAIL_FROM = os.environ.get("EMAIL_FROM", "")
 
 # ---------------------------------------------------------------------------
 # Slack Notifications

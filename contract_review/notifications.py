@@ -8,9 +8,54 @@ from email.mime.text import MIMEText
 
 from .config import (
     SLACK_WEBHOOK_URL,
-    SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, EMAIL_FROM,
+    RESEND_API_KEY, EMAIL_FROM,
+    SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD,
 )
 
+
+# ---------------------------------------------------------------------------
+# Low-level email sender — Resend (HTTP) or SMTP fallback
+# ---------------------------------------------------------------------------
+
+def _send_email(to: str, subject: str, body: str):
+    """Send a single email. Uses Resend API if configured, else SMTP."""
+    if RESEND_API_KEY:
+        print(f"    [email] Using Resend → {to}")
+        return _send_via_resend(to, subject, body)
+    if SMTP_USER and SMTP_PASSWORD:
+        print(f"    [email] Using SMTP → {to}")
+        return _send_via_smtp(to, subject, body)
+    raise RuntimeError("No email provider configured. Set RESEND_API_KEY or SMTP_USER/SMTP_PASSWORD.")
+
+
+def _send_via_resend(to: str, subject: str, body: str):
+    """Send email via Resend HTTP API — works on Render (no SMTP port needed)."""
+    import resend
+    resend.api_key = RESEND_API_KEY
+    resend.Emails.send({
+        "from": EMAIL_FROM,
+        "to": [to],
+        "subject": subject,
+        "text": body,
+    })
+
+
+def _send_via_smtp(to: str, subject: str, body: str):
+    """Send email via SMTP — works locally with Gmail App Password."""
+    sender = EMAIL_FROM or SMTP_USER
+    msg = MIMEText(body, "plain")
+    msg["Subject"] = subject
+    msg["From"] = sender
+    msg["To"] = to
+    with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+        server.starttls()
+        server.login(SMTP_USER, SMTP_PASSWORD)
+        server.sendmail(sender, [to], msg.as_string())
+
+
+# ---------------------------------------------------------------------------
+# Slack
+# ---------------------------------------------------------------------------
 
 def send_slack_notification(contract_name, summary, review_id, streamlit_url="http://localhost:8501"):
     if not SLACK_WEBHOOK_URL:
@@ -45,100 +90,9 @@ def send_slack_notification(contract_name, summary, review_id, streamlit_url="ht
         return False
 
 
-def send_email_notifications(
-    contract_name: str,
-    flags: list[dict],
-    team_emails: dict[str, str],
-    doc_url: str = "",
-    review_id: int | None = None,
-    streamlit_url: str = "http://localhost:8501",
-) -> int:
-    """
-    Send per-team plain text emails with flagged clauses, explanations, and links.
-    Each team only sees flags triggered by their own rules.
-    Returns number of emails sent.
-    """
-    if not SMTP_USER or not SMTP_PASSWORD:
-        print("  SMTP not configured — skipping email notifications.")
-        return 0
-
-    sender = EMAIL_FROM or SMTP_USER
-    sent = 0
-
-    # Group flags by team
-    team_flags: dict[str, list[dict]] = {}
-    for flag in flags:
-        if flag["classification"] == "compliant":
-            continue
-        for r in flag.get("triggered_rules", []):
-            team = r.get("source", "")
-            if team in team_emails:
-                team_flags.setdefault(team, []).append(flag)
-                break
-
-    for team, email in team_emails.items():
-        tflags = team_flags.get(team, [])
-        if not tflags:
-            continue
-
-        lines = []
-        lines.append(f"DPA Review — {team.upper()} Team")
-        lines.append("=" * 40)
-        lines.append(f"Contract: {contract_name}")
-        lines.append(f"Flags for your team: {len(tflags)}")
-        if doc_url:
-            lines.append(f"Google Doc: {doc_url}")
-        if review_id:
-            lines.append(f"Dashboard: {streamlit_url}?review_id={review_id}")
-        lines.append("")
-
-        for f in tflags:
-            risk = f["risk_level"]
-            cls = f["classification"].replace("_", " ").title()
-
-            lines.append(f"--- {f['flag_id']} [{risk} Risk] {cls} ---")
-            lines.append("")
-            lines.append(f"Clause: {f.get('input_text', '')}")
-            lines.append("")
-            lines.append(f"Explanation: {f.get('explanation', '')}")
-
-            # Triggered rules for this team
-            team_rules = [r for r in f.get("triggered_rules", []) if r.get("source") == team]
-            if team_rules:
-                lines.append("")
-                lines.append("Rulebook violations:")
-                for r in team_rules:
-                    lines.append(f"  - [{r['source'].upper()}] {r['clause']} (Risk: {r['risk']})")
-
-            redline = f.get("suggested_redline", "")
-            if redline:
-                lines.append("")
-                lines.append(f"Suggested redline: {redline}")
-
-            lines.append("")
-
-        lines.append("—")
-        lines.append("DPA Contract Review Tool — ClearTax")
-
-        body = "\n".join(lines)
-
-        msg = MIMEText(body, "plain")
-        msg["Subject"] = f"DPA Review: {len(tflags)} {team.upper()} flags — {contract_name}"
-        msg["From"] = sender
-        msg["To"] = email
-
-        try:
-            with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
-                server.starttls()
-                server.login(SMTP_USER, SMTP_PASSWORD)
-                server.sendmail(sender, [email], msg.as_string())
-            sent += 1
-            print(f"    Email sent to {team.upper()} team: {email}")
-        except Exception as e:
-            print(f"    Email to {email} failed: {e}")
-
-    return sent
-
+# ---------------------------------------------------------------------------
+# Review-ready email (sent after analysis completes)
+# ---------------------------------------------------------------------------
 
 def send_review_ready_email(
     contract_name: str,
@@ -148,15 +102,7 @@ def send_review_ready_email(
     doc_url: str = "",
     base_url: str = "http://localhost:8000",
 ) -> int:
-    """
-    Send an email to each team right after analysis completes.
-    Tells them how many flags are pending for their team with a direct dashboard link.
-    """
-    if not SMTP_USER or not SMTP_PASSWORD:
-        print("  SMTP not configured — skipping review-ready emails.")
-        return 0
-
-    sender = EMAIL_FROM or SMTP_USER
+    """Send an email to each team right after analysis completes."""
     sent = 0
 
     # Count flags per team
@@ -170,7 +116,6 @@ def send_review_ready_email(
             if src in team_emails:
                 triggered_teams.add(src)
         if not triggered_teams:
-            # General flags count for all teams
             for t in team_emails:
                 team_flag_counts[t] = team_flag_counts.get(t, 0) + 1
         else:
@@ -184,34 +129,27 @@ def send_review_ready_email(
 
         dashboard_url = f"{base_url}/dashboard?review={review_id}&tab={team}"
 
-        lines = []
-        lines.append(f"New DPA Review — Action Required")
-        lines.append("=" * 40)
-        lines.append("")
-        lines.append(f"Contract: {contract_name}")
-        lines.append(f"Review ID: #{review_id}")
-        lines.append(f"There are some pending flags for the {team.upper()} team.")
+        lines = [
+            f"New DPA Review — Action Required",
+            "=" * 40,
+            "",
+            f"Contract: {contract_name}",
+            f"Review ID: #{review_id}",
+            f"Pending flags for {team.upper()} team: {count}",
+        ]
         if doc_url:
-            lines.append("")
-            lines.append(f"Google Doc: {doc_url}")
-        lines.append("")
-        lines.append(f"Please review and take action on your pending flags:")
-        lines.append(dashboard_url)
-        lines.append("")
-        lines.append("— ClearTax DPA Review Tool")
+            lines += ["", f"Google Doc: {doc_url}"]
+        lines += [
+            "",
+            f"Please review and take action on your pending flags:",
+            dashboard_url,
+            "",
+            "— ClearTax DPA Review Tool",
+        ]
 
-        body = "\n".join(lines)
-
-        msg = MIMEText(body, "plain")
-        msg["Subject"] = f"Action Required: DPA flags pending — {contract_name}"
-        msg["From"] = sender
-        msg["To"] = email
-
+        subject = f"Action Required: {count} DPA flags pending — {contract_name}"
         try:
-            with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
-                server.starttls()
-                server.login(SMTP_USER, SMTP_PASSWORD)
-                server.sendmail(sender, [email], msg.as_string())
+            _send_email(email, subject, "\n".join(lines))
             sent += 1
             print(f"    Review-ready email sent to {team.upper()}: {email}")
         except Exception as e:
@@ -220,6 +158,10 @@ def send_review_ready_email(
     return sent
 
 
+# ---------------------------------------------------------------------------
+# All-reviewed email (sent when all flags have been actioned)
+# ---------------------------------------------------------------------------
+
 def send_all_reviewed_email(
     contract_name: str,
     review_id: int,
@@ -227,55 +169,41 @@ def send_all_reviewed_email(
     doc_url: str = "",
     base_url: str = "http://localhost:8000",
 ) -> int:
-    """
-    Send an email to the legal team when every flag in a review has been reviewed (0 pending).
-    """
-    if not SMTP_USER or not SMTP_PASSWORD:
-        print("  SMTP not configured — skipping all-reviewed email.")
-        return 0
-
+    """Send an email to the legal team when every flag has been reviewed."""
     legal_email = team_emails.get("legal")
     if not legal_email:
         print("  No legal team email configured — skipping all-reviewed email.")
         return 0
 
-    sender = EMAIL_FROM or SMTP_USER
-
     dashboard_url = f"{base_url}/dashboard?review={review_id}"
 
-    lines = []
-    lines.append("DPA Review Complete — All Flags Reviewed")
-    lines.append("=" * 40)
-    lines.append("")
-    lines.append(f"Contract: {contract_name}")
-    lines.append(f"Review ID: #{review_id}")
-    lines.append("")
-    lines.append("All pending flags have been reviewed. Please do a final review:")
-    lines.append(dashboard_url)
+    lines = [
+        "DPA Review Complete — All Flags Reviewed",
+        "=" * 40,
+        "",
+        f"Contract: {contract_name}",
+        f"Review ID: #{review_id}",
+        "",
+        "All pending flags have been reviewed. Please do a final review:",
+        dashboard_url,
+    ]
     if doc_url:
-        lines.append("")
-        lines.append(f"Google Doc: {doc_url}")
-    lines.append("")
-    lines.append("— ClearTax DPA Review Tool")
+        lines += ["", f"Google Doc: {doc_url}"]
+    lines += ["", "— ClearTax DPA Review Tool"]
 
-    body = "\n".join(lines)
-
-    msg = MIMEText(body, "plain")
-    msg["Subject"] = f"All flags reviewed — {contract_name}"
-    msg["From"] = sender
-    msg["To"] = legal_email
-
+    subject = f"All flags reviewed — {contract_name}"
     try:
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
-            server.starttls()
-            server.login(SMTP_USER, SMTP_PASSWORD)
-            server.sendmail(sender, [legal_email], msg.as_string())
+        _send_email(legal_email, subject, "\n".join(lines))
         print(f"    All-reviewed email sent to LEGAL: {legal_email}")
         return 1
     except Exception as e:
         print(f"    All-reviewed email to {legal_email} failed: {e}")
         return 0
 
+
+# ---------------------------------------------------------------------------
+# Single flag email (sent when a flag is accepted)
+# ---------------------------------------------------------------------------
 
 def _truncate_clause(text: str, max_len: int = 300) -> str:
     """Shorten long clause text for email readability."""
@@ -295,24 +223,12 @@ def send_flag_email(
     team_emails: dict[str, str],
     doc_url: str = "",
 ) -> int:
-    """
-    Send a well-formatted plain text email for a single accepted flag.
-    Routes to the correct team(s) based on triggered_rules source.
-    Returns number of emails sent.
-    """
-    if not SMTP_USER or not SMTP_PASSWORD:
-        raise RuntimeError(
-            "SMTP not configured. Set SMTP_USER and SMTP_PASSWORD in .env to send emails."
-        )
-
-    sender = EMAIL_FROM or SMTP_USER
+    """Send an email for a single accepted flag to the relevant team(s)."""
     sent = 0
 
     risk = flag.get("risk_level") or "Low"
     cls = (flag.get("classification") or "compliant").replace("_", " ").title()
-    flag_id = flag.get("flag_id", "?")
     section = flag.get("input_clause_section") or "General"
-    match_type = flag.get("match_type") or "N/A"
 
     # Determine which teams to email
     triggered_teams = set()
@@ -331,32 +247,21 @@ def send_flag_email(
         explanation = flag.get("explanation") or ""
         redline = flag.get("suggested_redline") or ""
 
-        L = []
-        L.append(f"DPA Review — {contract_name}")
-        L.append(f"Section: {section} | Risk: {risk} | {cls}")
-        L.append("")
-        L.append(explanation)
+        lines = [
+            f"DPA Review — {contract_name}",
+            f"Section: {section} | Risk: {risk} | {cls}",
+            "",
+            explanation,
+        ]
         if redline:
-            L.append("")
-            L.append(f"Suggested change: {redline}")
+            lines += ["", f"Suggested change: {redline}"]
         if doc_url:
-            L.append("")
-            L.append(doc_url)
-        L.append("")
-        L.append("— ClearTax DPA Review Tool")
+            lines += ["", doc_url]
+        lines += ["", "— ClearTax DPA Review Tool"]
 
-        body = "\n".join(L)
-
-        msg = MIMEText(body, "plain")
-        msg["Subject"] = f"[{risk}] DPA: {section} — {cls}"
-        msg["From"] = sender
-        msg["To"] = email
-
+        subject = f"[{risk}] DPA: {section} — {cls}"
         try:
-            with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
-                server.starttls()
-                server.login(SMTP_USER, SMTP_PASSWORD)
-                server.sendmail(sender, [email], msg.as_string())
+            _send_email(email, subject, "\n".join(lines))
             sent += 1
             print(f"    Email sent to {team.upper()}: {email}")
         except Exception as e:

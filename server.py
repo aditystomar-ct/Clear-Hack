@@ -205,7 +205,6 @@ def api_accept_flag(review_id: int, flag_id: str, body: dict):
 
     threading.Thread(target=_background_tasks, daemon=True).start()
 
-    print(f"  [accept] Done. messages={messages}, errors={errors}")
     return {
         "flag_id": flag_id,
         "status": "accepted",
