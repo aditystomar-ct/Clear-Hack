@@ -17,7 +17,7 @@ import { api } from "@/lib/api";
 import type { Flag, FlagAction, TeamEmails } from "@/types";
 
 /** Mirrors _build_professional_comment from google_doc.py */
-function buildCommentPreview(flag: Flag): string {
+function buildCommentPreview(flag: Flag, teamEmails: TeamEmails): string {
   if (flag.classification === "compliant") {
     return "No concerns. This clause aligns with our standard DPA.";
   }
@@ -25,6 +25,18 @@ function buildCommentPreview(flag: Flag): string {
   if (flag.suggested_redline) {
     comment += `\n\nProposed Amendment: ${flag.suggested_redline}`;
   }
+
+  // Tag relevant team emails
+  const taggedTeams = new Set(flag.triggered_rules.map((r) => r.source));
+  const teams = taggedTeams.size ? taggedTeams : new Set(Object.keys(teamEmails));
+  const tags = [...teams]
+    .sort()
+    .filter((t) => teamEmails[t])
+    .map((t) => `@${teamEmails[t]}`);
+  if (tags.length) {
+    comment += "\n\n" + tags.join(" ");
+  }
+
   return comment;
 }
 
@@ -47,7 +59,7 @@ export default function FlagCard({
   const queryClient = useQueryClient();
   const actionStatus = action?.reviewer_action ?? "pending";
 
-  const autoComment = useMemo(() => buildCommentPreview(flag), [flag]);
+  const autoComment = useMemo(() => buildCommentPreview(flag, teamEmails), [flag, teamEmails]);
   const [comment, setComment] = useState(autoComment);
   const [editing, setEditing] = useState(false);
   const [edited, setEdited] = useState(false);

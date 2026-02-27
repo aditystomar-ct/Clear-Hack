@@ -7,7 +7,7 @@ _COMMENT_HIGHLIGHT = {"red": 1.00, "green": 0.95, "blue": 0.60}
 
 
 def _build_professional_comment(flag: dict, team_emails: dict[str, str] | None = None) -> str:
-    """Build a concise Google Doc comment: Concern + Proposed Amendment only."""
+    """Build a concise Google Doc comment: Concern + Proposed Amendment + @team email."""
     cls = flag.get("classification", "compliant")
     explanation = flag.get("explanation", "")
     redline = flag.get("suggested_redline", "")
@@ -19,6 +19,19 @@ def _build_professional_comment(flag: dict, team_emails: dict[str, str] | None =
 
     if redline:
         comment += f"\n\nProposed Amendment: {redline}"
+
+    # Tag relevant team emails
+    if team_emails:
+        tagged_teams = set()
+        for r in flag.get("triggered_rules", []):
+            src = r.get("source", "")
+            if src in team_emails:
+                tagged_teams.add(src)
+        if not tagged_teams:
+            tagged_teams = set(team_emails.keys())
+        tags = [f"@{team_emails[t]}" for t in sorted(tagged_teams) if team_emails.get(t)]
+        if tags:
+            comment += "\n\n" + " ".join(tags)
 
     return comment
 
