@@ -112,7 +112,7 @@ def analyze_dpa(
     stop_reason = None
     with client.messages.stream(
         model=LLM_MODEL,
-        max_tokens=65536,
+        max_tokens=128000,
         system=system_prompt,
         messages=[{"role": "user", "content": user_message}],
     ) as stream:
@@ -131,15 +131,12 @@ def analyze_dpa(
     try:
         results = json.loads(text)
     except json.JSONDecodeError:
-        # Response was likely truncated (hit max_tokens)
-        if stop_reason == "max_tokens":
-            print(f"  Warning: Response truncated at max_tokens. Recovering complete objects...")
-            results = _recover_truncated_json(text)
-            if not results:
-                raise ValueError("LLM response was truncated and no complete objects could be recovered.")
-            print(f"  Recovered {len(results)} complete clause analyses from truncated response.")
-        else:
-            raise
+        # Response was likely truncated — always try to recover complete objects
+        print(f"  Warning: JSON parse failed (stop_reason={stop_reason}). Recovering complete objects...")
+        results = _recover_truncated_json(text)
+        if not results:
+            raise ValueError("LLM response had invalid JSON and no complete objects could be recovered.")
+        print(f"  Recovered {len(results)} complete clause analyses from truncated response.")
 
     if not isinstance(results, list):
         raise ValueError(f"Expected JSON array from LLM, got {type(results).__name__}")

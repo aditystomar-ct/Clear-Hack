@@ -45,7 +45,7 @@ from contract_review.extractors import load_team_emails
 
 app = FastAPI(title="DPA Contract Review API")
 
-BASE_URL = os.environ.get("BASE_URL", "https://clear-hack.onrender.com")
+BASE_URL = os.environ.get("BASE_URL", "http://localhost:8000")
 
 
 def _check_all_reviewed(review_id: int):
@@ -205,7 +205,6 @@ def api_accept_flag(review_id: int, flag_id: str, body: dict):
 
     threading.Thread(target=_background_tasks, daemon=True).start()
 
-    print(f"  [accept] Done. messages={messages}, errors={errors}")
     return {
         "flag_id": flag_id,
         "status": "accepted",
